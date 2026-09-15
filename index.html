@@ -1,0 +1,2924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MoveMap</title>
+<style>
+
+:root{
+  /* 기본 — 블랙 & 화이트 */
+  --ink:#101014;      /* 본문 · 기본 버튼 */
+  --ink2:#50505A;
+  --ink3:#8A8A94;
+  --bg:#F4F4F5;
+  --surface:#FFFFFF;
+  --line:#E1E1E6;
+  --line2:#EFEFF2;
+  /* 포인트 — 인디고 블루 (선택 상태 · 강조) */
+  --deep:#2C46D8;
+  --mid:#8092EC;
+  --pale:#BCC6F5;
+  --wash:#EEF1FC;
+  /* 경고 · 확인 */
+  --warn:#B4302A;
+  --warnwash:#FBEDEB;
+  --gold:#8A6714;
+  --goldwash:#F6F0E1;
+  --r:4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4{margin:0;letter-spacing:-0.015em;line-height:1.25}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:18px;
+  padding:10px 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:17px;letter-spacing:-0.02em;
+  white-space:nowrap;border:0;background:none;padding:2px 6px 2px 0;margin:0;text-align:left;color:inherit;border-radius:var(--r)}
+.brand:hover .bn{color:var(--deep)}
+.brand:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
+.brand small{font-weight:450;font-size:12.5px;color:var(--ink3);letter-spacing:0}
+.crumbs{flex:1;min-width:0;font-size:13.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topActions{display:flex;gap:8px;flex-shrink:0}
+
+/* ---------- buttons ---------- */
+.btn{
+  border:1px solid var(--line);background:var(--surface);
+  padding:7px 14px;border-radius:var(--r);font-size:14px;font-weight:550;
+}
+.btn:hover{border-color:var(--mid)}
+.btn:focus-visible,.chip:focus-visible,.seg button:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
+.btn.primary{background:var(--deep);border-color:var(--deep);color:#fff}
+.btn.primary:hover{background:#17393C}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink2)}
+.btn.ghost:hover{background:var(--wash);border-color:transparent}
+.btn.danger{color:var(--warn);border-color:#E4CCC6}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:4px 10px;font-size:13px}
+
+/* ---------- layout ---------- */
+main{max-width:1180px;margin:0 auto;padding:22px 20px 120px}
+.split{display:grid;grid-template-columns:212px 1fr;gap:26px;align-items:start}
+@media(max-width:860px){.split{grid-template-columns:1fr;gap:14px}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin-bottom:14px}
+.panel.flush{padding:0;overflow:hidden}
+.panel h2{font-size:20px;margin-bottom:4px}
+.panel h3{font-size:16px;margin-bottom:2px}
+.sub{color:var(--ink2);font-size:13.5px;margin:2px 0 16px}
+.hint{color:var(--ink3);font-size:12.5px}
+
+/* ---------- step rail ---------- */
+.rail{position:sticky;top:66px}
+.rail ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.rail li{margin:0}
+.rail button{
+  width:100%;text-align:left;background:none;border:0;padding:9px 12px;
+  font-size:14px;color:var(--ink2);border-left:2px solid transparent;margin-left:-1px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+}
+.rail button:hover{color:var(--ink);background:var(--wash)}
+.rail button[aria-current="true"]{color:var(--ink);font-weight:650;border-left-color:var(--deep);background:var(--wash)}
+.rail .count{font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.rail button[aria-current="true"] .count{color:var(--deep)}
+@media(max-width:860px){
+  .rail{position:sticky;top:56px;z-index:30;background:var(--bg);padding:6px 0;margin:0 -20px;padding-left:20px}
+  .rail ol{display:flex;gap:4px;overflow-x:auto;border-left:0;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .rail button{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent;border-radius:var(--r)}
+  .rail button[aria-current="true"]{border-left:0;border-bottom-color:var(--deep)}
+}
+
+/* ---------- chips ---------- */
+.group{padding:16px 0;border-top:1px solid var(--line2)}
+.group:first-child{border-top:0;padding-top:4px}
+.group-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.group-head h4{font-size:14.5px;font-weight:700}
+.group-head .note{font-size:12.5px;color:var(--ink3)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  border:1px solid var(--line);background:var(--surface);
+  padding:7px 13px;border-radius:999px;font-size:13.5px;line-height:1.3;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.chip:hover{border-color:var(--mid)}
+.chip[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.chip[aria-pressed="true"].alt{background:var(--gold);border-color:var(--gold)}
+.chip[aria-pressed="true"].caution{background:var(--warn);border-color:var(--warn)}
+.chip .side{font-size:11px;opacity:.75;font-weight:600}
+.chip .w{font-size:11px;opacity:.6;font-variant-numeric:tabular-nums}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 13px;font-size:13px;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.rowline{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--line2);flex-wrap:wrap}
+.rowline:first-of-type{border-top:0}
+.rowline .lbl{font-size:14px}
+.rowline .lbl em{display:block;font-style:normal;font-size:12px;color:var(--ink3)}
+
+/* ---------- form ---------- */
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label.f{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:4px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+}
+textarea{min-height:76px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--deep);outline-offset:-1px;border-color:var(--deep)}
+
+/* ---------- test card ---------- */
+.test{border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;background:var(--surface)}
+.test > summary{
+  list-style:none;cursor:pointer;padding:13px 16px;display:flex;align-items:center;gap:12px;
+}
+.test > summary::-webkit-details-marker{display:none}
+.test summary .tname{font-weight:650;font-size:15px}
+.test summary .ten{font-size:12px;color:var(--ink3);margin-left:2px}
+.test summary .tstate{margin-left:auto;font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px}
+.test[open] > summary{border-bottom:1px solid var(--line2)}
+.test .tbody{padding:14px 16px 16px}
+.test.flagged{border-left:2px solid var(--deep)}
+.badge{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--wash);color:var(--deep);font-weight:600}
+.badge.warn{background:var(--warnwash);color:var(--warn)}
+.badge.gold{background:var(--goldwash);color:var(--gold)}
+.badge.quiet{background:var(--line2);color:var(--ink2)}
+
+/* ---------- results ---------- */
+.scorelist{margin:0;padding:0;list-style:none}
+.scorerow{display:grid;grid-template-columns:150px 1fr 78px;gap:12px;align-items:center;padding:7px 0}
+@media(max-width:620px){.scorerow{grid-template-columns:120px 1fr 62px;gap:8px}}
+.scorerow .dname{font-size:13.5px;font-weight:600}
+.scorerow .dname em{display:block;font-style:normal;font-weight:400;font-size:11px;color:var(--ink3)}
+.track{height:16px;background:var(--line2);border-radius:2px;overflow:hidden}
+.fill{height:100%;background:var(--deep)}
+.fill.unconfirmed{
+  background:repeating-linear-gradient(115deg,var(--pale) 0 5px,var(--wash) 5px 10px);
+}
+.fill.low{background:var(--mid)}
+.scorerow .val{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;text-align:right}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink3);margin-top:10px}
+.legend i{display:inline-block;width:22px;height:9px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+.prio{border:1px solid var(--line);border-left:3px solid var(--deep);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.prio.excluded{opacity:.5;border-left-color:var(--ink3)}
+.prio.edited{border-left-color:var(--gold)}
+.prio .ptop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.prio .rank{font-size:12px;font-weight:700;color:var(--deep)}
+.prio h4{font-size:16.5px}
+.prio .pen{font-size:12.5px;color:var(--ink3)}
+.prio p{margin:7px 0 0;font-size:14px;color:var(--ink2)}
+.prio .actions{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;align-items:center}
+
+.calloutbox{background:var(--wash);border-radius:var(--r);padding:14px 16px;margin:12px 0;font-size:14px}
+.calloutbox.warn{background:var(--warnwash);border-left:3px solid var(--warn)}
+.calloutbox h4{font-size:14.5px;margin-bottom:5px}
+.calloutbox ul{margin:6px 0 0;padding-left:18px}
+.calloutbox li{margin:3px 0}
+
+table.plan{width:100%;border-collapse:collapse;font-size:13.5px}
+table.plan th,table.plan td{text-align:left;vertical-align:top;padding:10px 12px;border-top:1px solid var(--line2)}
+table.plan thead th{border-top:0;font-size:12px;color:var(--ink3);font-weight:600;padding-bottom:6px}
+table.plan td.ph{font-weight:650;white-space:nowrap}
+table.plan td.ph em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+table.plan ul{margin:0;padding-left:16px}
+table.plan li{margin:2px 0}
+
+/* ---------- lists ---------- */
+.memberlist{list-style:none;margin:0;padding:0}
+.memberlist li{border-top:1px solid var(--line2)}
+.memberlist li:first-child{border-top:0}
+.memberlist button{
+  width:100%;background:none;border:0;padding:14px 22px;text-align:left;
+  display:flex;align-items:center;gap:14px;
+}
+.memberlist button:hover{background:var(--wash)}
+.memberlist .mname{font-weight:650;font-size:15.5px}
+.memberlist .mmeta{font-size:12.5px;color:var(--ink3)}
+.memberlist .mright{margin-left:auto;text-align:right;font-size:12.5px;color:var(--ink2)}
+.empty{padding:34px 22px;color:var(--ink2);font-size:14px}
+.empty strong{display:block;font-size:16px;color:var(--ink);margin-bottom:4px}
+
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{padding:12px 0;border-top:1px solid var(--line2);display:flex;gap:14px;align-items:flex-start}
+.timeline li:first-child{border-top:0}
+.timeline .when{font-size:12px;color:var(--ink3);width:78px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.timeline .what{flex:1;font-size:14px}
+.timeline .what strong{font-size:14px}
+.timeline .what p{margin:3px 0 0;color:var(--ink2);font-size:13.5px}
+
+/* ---------- sticky footer ---------- */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:35;
+  background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  padding:10px 20px;display:flex;align-items:center;gap:12px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+}
+.dock .dockinfo{font-size:13px;color:var(--ink2);flex:1;min-width:0}
+.dock .dockinfo b{color:var(--ink)}
+
+.toast{
+  position:fixed;left:50%;bottom:74px;transform:translateX(-50%);
+  background:var(--ink);color:#fff;padding:9px 18px;border-radius:999px;font-size:13.5px;z-index:60;
+}
+@media(prefers-reduced-motion:no-preference){
+  .toast{animation:rise .18s ease-out}
+  @keyframes rise{from{opacity:0;transform:translate(-50%,6px)}}
+}
+.srow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mt16{margin-top:16px}.mt24{margin-top:24px}
+.divider{height:1px;background:var(--line2);margin:18px 0}
+
+
+/* 로그인 */
+.gate{max-width:420px;margin:8vh auto 0}
+.gate .panel{padding:26px 26px 24px}
+.gate h1{font-size:23px;margin-bottom:4px}
+.centername{font-size:12.5px;color:var(--ink3);letter-spacing:.12em;font-weight:600}
+.brandwrap{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;white-space:nowrap;gap:1px}
+.brandwrap .cn{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--deep);font-weight:700;letter-spacing:.1em}
+.brandwrap .cn span{color:var(--ink2);background:var(--line2);border-radius:999px;padding:1px 7px;
+  font-size:10.5px;font-weight:600;letter-spacing:.04em}
+.brandwrap .bn{font-size:17px;font-weight:750;letter-spacing:-0.02em}
+.coachpick{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.who{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+
+/* 사진 */
+.photogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.slot{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.slot .cap{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;font-size:13px;font-weight:600;border-bottom:1px solid var(--line2)}
+.slot .cap button{border:0;background:none;font-size:12px;color:var(--ink3);padding:2px 4px}
+.slot .cap button:hover{color:var(--warn)}
+.slot .box{aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:var(--wash);position:relative}
+.slot .box img{width:100%;height:100%;object-fit:cover;display:block}
+.slot .box label{font-size:12.5px;color:var(--ink2);cursor:pointer;text-align:center;padding:10px}
+.slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.scale5{display:inline-flex;gap:6px;flex-wrap:wrap}
+
+/* 특이사항 로그 */
+.notelog{list-style:none;margin:10px 0 0;padding:0}
+.notelog li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line2);font-size:14px}
+.notelog li:first-child{border-top:0}
+.notelog .nd{font-size:12px;color:var(--ink3);width:74px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.notelog .nt{flex:1}
+.pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);margin-right:5px}
+
+@media print{
+  .topbar,.dock,.rail,.noprint{display:none !important}
+  body{background:#fff}
+  main{padding:0;max-width:none}
+  .panel{border:0;padding:0;margin-bottom:18px;break-inside:avoid}
+  .prio{break-inside:avoid}
+}
+
+/* ---------- 폼 정렬 통일 ---------- */
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px 16px;align-items:end}
+.fields .wide{grid-column:1/-1}
+label.f{display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:var(--ink2);margin-bottom:5px;min-height:18px}
+label.f .auto{color:var(--deep);font-weight:650}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=tel],input[type=password],input[type=email],select{
+  width:100%;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+select{padding-right:6px}
+textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.readonly{background:var(--wash);color:var(--ink2)}
+
+/* ---------- 정적 관찰 좌우 정렬 ---------- */
+.pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:0 26px}
+.prow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--line2);min-height:42px}
+.prow .pn{font-size:13.5px;line-height:1.3}
+.lr{display:inline-flex;gap:6px}
+.lr button{border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  min-width:46px;height:30px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.lr button:hover{border-color:var(--mid)}
+.lr button[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.lr button.one{min-width:58px;font-weight:550}
+.lr button.caution[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+
+/* ---------- 서브 내비 · 요약 카드 ---------- */
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.subnav button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 15px;font-size:13.5px}
+.subnav button[aria-current="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:15px 16px;text-align:left;width:100%}
+.card:hover{border-color:var(--mid)}
+.card .ct{font-size:13px;color:var(--ink2)}
+.card .cv{font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-top:2px}
+.card .cs{font-size:12.5px;color:var(--ink3);margin-top:3px}
+
+/* ---------- 표 ---------- */
+table.grid{width:100%;border-collapse:collapse;font-size:13.5px}
+table.grid th,table.grid td{text-align:left;padding:10px 12px;border-top:1px solid var(--line2);vertical-align:middle}
+table.grid thead th{border-top:0;font-size:12px;color:var(--ink3);font-weight:600}
+table.grid tr:hover td{background:var(--wash)}
+table.grid td.num{font-variant-numeric:tabular-nums;color:var(--ink2)}
+table.grid select{height:32px;font-size:13px}
+.tablewrap{overflow-x:auto}
+.rowbtn{background:none;border:0;font-weight:650;color:var(--ink);text-align:left;padding:0}
+.rowbtn:hover{color:var(--deep);text-decoration:underline}
+
+/* ---------- 동기화 표시 ---------- */
+.syncdot{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)}
+.syncdot i{width:7px;height:7px;border-radius:50%;background:var(--pale)}
+.syncdot.on i{background:var(--deep)}
+.syncdot.err i{background:var(--warn)}
+.note-src{font-size:11.5px;color:var(--deep);background:var(--wash);border-radius:999px;padding:1px 8px;margin-left:6px}
+.mutedbox{border:1px dashed var(--line);border-radius:var(--r);padding:13px 15px;color:var(--ink2);font-size:13.5px}
+
+/* ---------- 상단 뒤로가기 · 센터 ---------- */
+.backbtn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;color:var(--ink2);flex-shrink:0}
+.backbtn:hover{border-color:var(--mid)}
+.centerpick{border:1px solid var(--line);background:var(--surface);border-radius:999px;height:30px;
+  padding:0 10px;font-size:12.5px;max-width:180px}
+.brandwrap .cn{max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- 하단 탭바 ---------- */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:36;display:grid;grid-template-columns:repeat(5,1fr);
+  align-items:end;background:rgba(255,255,255,.97);border-top:1px solid var(--line);
+  padding:7px 4px calc(7px + env(safe-area-inset-bottom))}
+.tabbar button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;color:var(--ink3);padding:4px 0}
+.tabbar button .ic{font-size:17px;line-height:1}
+.tabbar button[aria-current="true"]{color:var(--deep);font-weight:650}
+.tabbar .addbtn{margin-top:-16px}
+.tabbar .addbtn .ic{width:46px;height:46px;border-radius:50%;background:var(--deep);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300}
+body.hastabs main{padding-bottom:96px}
+
+/* ---------- 사진 썸네일 ---------- */
+.photogrid.small{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
+.photogrid.small .box{aspect-ratio:1/1}
+.photogrid.small .cap{padding:5px 8px;font-size:12px}
+
+/* ---------- 설정 목록 ---------- */
+.setlist{list-style:none;margin:0;padding:0}
+.setlist li{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 0;border-top:1px solid var(--line2);font-size:14px}
+.setlist li:first-child{border-top:0}
+.setlist .sv{color:var(--ink2);font-size:13.5px;text-align:right}
+.newsitem{display:block;border-top:1px solid var(--line2);padding:13px 0;text-decoration:none;color:inherit}
+.newsitem:first-of-type{border-top:0}
+.newsitem strong{display:block;font-size:14.5px}
+.newsitem span{font-size:12.5px;color:var(--ink3)}
+.perm{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ---------- 정렬 통일 ---------- */
+.fields{grid-auto-rows:min-content;align-items:stretch}
+.fields>div{min-width:0;display:flex;flex-direction:column;justify-content:flex-end}
+.fields>div>label.f{flex:0 0 auto}
+.fields textarea{min-height:68px}
+.fields input,.fields select,.fields textarea{margin:0}
+label.f{min-height:20px;line-height:1.35;align-items:center}
+.group{padding:18px 0}
+.group-head{align-items:center;margin-bottom:11px}
+.panel h3{margin-bottom:2px}
+.panel>.srow+.mt16{margin-top:16px}
+.setlist li{align-items:flex-start}
+.setlist .sv{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.chips{align-items:center}
+.seg button{white-space:nowrap}
+.rowline{align-items:center}
+table.grid th,table.grid td{vertical-align:middle}
+table.grid td.act{white-space:nowrap;text-align:right}
+.srow>.btn{flex:0 0 auto}
+.cards{align-items:stretch}
+.card{display:flex;flex-direction:column;justify-content:flex-start}
+.tablewrap table{min-width:100%}
+.mutedbox{margin-top:0}
+
+/* ---------- 버튼은 검정, 선택 상태는 포인트 컬러 ---------- */
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.primary:hover{background:#000;border-color:#000}
+.loginmode button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.tabbar .addbtn .ic{background:var(--ink)}
+
+/* ---------- 문진 ---------- */
+.secnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.secnav button{border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:7px 14px;font-size:13.5px;color:var(--ink2);display:inline-flex;align-items:center;gap:6px}
+.secnav button[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.secnav button .n{font-size:11px;font-variant-numeric:tabular-nums;
+  background:var(--deep);color:#fff;border-radius:999px;padding:0 6px;min-width:17px;text-align:center}
+.secnav button[aria-current="true"] .n{background:#fff;color:var(--ink)}
+.condbox{border:1px solid var(--line);border-left:3px solid var(--deep);border-radius:var(--r);
+  padding:14px 16px;margin-top:10px;background:var(--surface)}
+.condbox>.ch{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.condbox>.ch strong{font-size:14.5px}
+.condbox.main{border-left-color:var(--ink);background:var(--surface)}
+.condbox .chip.sm{padding:4px 11px;font-size:12.5px}
+.condbox>.ch .srow{flex-wrap:nowrap}
+.sitegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 22px}
+.siterow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;
+  padding:6px 0;border-bottom:1px solid var(--line2);min-height:40px}
+.siterow .sn{font-size:13.5px}
+.siterow .lr button{border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  min-width:44px;height:29px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.siterow .lr button[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.urgentbar{background:var(--warnwash);border:1px solid #E6C9C3;border-left:3px solid var(--warn);
+  border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
+.urgentbar h4{font-size:15px;color:var(--warn);margin-bottom:6px}
+.urgentbar ul{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+.urgentbar p{margin:8px 0 0;font-size:13px;color:var(--ink2)}
+.rowdel{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);
+  padding:3px 9px;font-size:12px;color:var(--ink2)}
+.rowdel:hover{color:var(--warn);border-color:#E4CCC6}
+.sumline{font-size:14px;line-height:1.9}
+.sumline .pill{margin-right:6px}
+
+/* ---------- 로그인 모드 선택 ---------- */
+.loginmode{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:999px;
+  overflow:hidden;background:var(--surface);margin:0 0 18px}
+.loginmode button{border:0;background:none;padding:11px 0;font-size:14px;font-weight:600;color:var(--ink2);line-height:1.2}
+.loginmode button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.loginmode button em{display:block;font-style:normal;font-size:11px;font-weight:450;opacity:.8;margin-top:1px}
+.modehint{font-size:12.5px;color:var(--ink3);margin:-10px 0 16px}
+
+/* ---------- 설정 목록 보조설명 ---------- */
+.setlist em.sethint{display:block;font-style:normal;font-size:12px;color:var(--ink3);margin-top:2px}
+.setlist li>span:first-child{font-weight:550}
+table.grid td.act{white-space:nowrap;text-align:right}
+table.grid td.act .btn{margin-left:6px}
+table.grid input[type=text]{height:32px;font-size:13px}
+.brandwrap .cn span{color:var(--gold)}
+@media(max-width:620px){
+  .crumbs{display:none}
+  .gate{margin:4vh auto 0}
+  .gate .panel{padding:20px 18px}
+  main{padding:16px 14px 120px}
+  .panel{padding:16px 15px}
+}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span id="back"></span>
+  <button class="brand" data-act="home" aria-label="홈으로"><span class="brandwrap"><span class="cn" id="cname"></span><span class="bn">MoveMap</span></span></button>
+  <nav class="crumbs" id="crumbs"></nav>
+  <div class="who" id="who"></div>
+  <div class="topActions" id="topActions"></div>
+</header>
+<main id="view"></main>
+<div id="dock"></div>
+<div id="tabs"></div>
+<script>
+let APP_ROLE="coach";                    /* 로그인할 때 admin / coach 중에서 정해짐 */
+const isAdmin=()=>APP_ROLE==="admin";
+
+/* ============================================================
+   MoveMap — 평가 항목 데이터
+   가중치 규칙
+     정적 관찰(static)  : 1  — 단독으로는 결론 내지 않음
+     움직임 평가(move)  : 2~3 — 실제 기능 소견
+     큐잉 반응(cue)     : 1  — 접근 방식 조정용
+   confirmed 판정: 해당 도메인에 움직임 근거(move)가 1개 이상 있을 때만
+   ============================================================ */
+
+const DOMAINS = {
+  breath:{ko:"호흡·흉곽 조절",en:"Breathing / Rib cage",
+    early:"측방 늑골 확장 인지, 날숨 끝 흉곽 하강 유지. 앙와위·측와위 저부하에서 시작",
+    mid:"팔 움직임과 부하에서 흉곽 위치 유지(리포머 암워크, 스트랩 계열)",
+    late:"회전·신전 동작과 고부하에서 호흡 패턴 유지",
+    retest:["breathing","shoulder_flexion","curlup"]},
+  pelvis:{ko:"골반 조절",en:"Pelvic control",
+    early:"골반 전·후방 경사 인지, 중립 찾기. 앙와위에서 촉각 큐잉 병행",
+    mid:"양측 지지에서 골반 수평·회전 없이 유지(브릿지, 풋워크, 사이드라잉)",
+    late:"단하지·회전 부하에서 골반 위치 유지",
+    retest:["rolldown","hip_extension","squat"]},
+  lumbo:{ko:"요추-골반 안정성",en:"Lumbopelvic stability",
+    early:"복부 압력 조절과 호흡 연결, 요추 보상 없는 저부하 사지 움직임",
+    mid:"사지 부하 증가(데드버그·쿼드러페드 계열)에서 요추 중립 유지",
+    late:"신전·회전·불안정 지지면으로 난도 확장",
+    retest:["hip_extension","shoulder_flexion","aslr","curlup"]},
+  hipstab:{ko:"고관절 안정성",en:"Hip / lateral stability",
+    early:"측와위에서 외전·외회전 인지, 지지측 감각 깨우기",
+    mid:"양발 → 단발 전환, 체중이동 조절(스탠딩 스플릿, 사이드 스플릿)",
+    late:"스텝다운·런지·점프보드 계열로 속도와 부하 증가",
+    retest:["single_leg_stance","single_leg_squat","squat"]},
+  hipmob:{ko:"고관절 가동성",en:"Hip mobility",
+    early:"수동·능동 가동범위 확보, 굴곡근 길이 회복",
+    mid:"확보된 범위 안에서 조절력 부여(능동 가동범위 전환)",
+    late:"스쿼트·런지 깊이와 분리된 고관절 회전 통합",
+    retest:["hip_rotation","thomas","aslr","squat"]},
+  thoracic:{ko:"흉추 가동성",en:"Thoracic mobility",
+    early:"분절 굴곡·신전 인지, 호흡과 결합한 늑골 움직임",
+    mid:"회전 가동범위 확보와 골반 고정 상태 분리",
+    late:"팔 부하·서 있는 자세에서 흉추 움직임 통합",
+    retest:["thoracic_rotation","rolldown","shoulder_flexion"]},
+  scap:{ko:"견갑·어깨 조절",en:"Scapular control",
+    early:"견갑 움직임 방향 인지(거상·하강·전인·후인), 저부하 클로즈드체인",
+    mid:"어깨 굴곡·외전 시 견갑 상방회전 타이밍 조절",
+    late:"체중지지와 고부하 푸시·풀 계열로 확장",
+    retest:["shoulder_flexion","quadruped","rolldown"]},
+  cervical:{ko:"경추 조절",en:"Cervical control",
+    early:"두부 위치 인지, 깊은 목굽힘근 저부하 활성",
+    mid:"팔 움직임·상체 굴곡에서 목 보상 줄이기",
+    late:"체중지지·앉은 자세 부하에서 경추 정렬 유지",
+    retest:["cervical","curlup","shoulder_flexion"]},
+  foot:{ko:"발·발목 조절",en:"Foot / ankle control",
+    early:"족저 압력 분포와 아치 인지, 발목 배측굴곡 확보",
+    mid:"체중지지에서 압력 조절(풋워크, 스탠딩 계열)",
+    late:"단하지·탄성 부하에서 발 조절 유지",
+    retest:["ankle_df","single_leg_stance","squat"]},
+  integration:{ko:"전신 통합·부하 내성",en:"Integration / load",
+    early:"동작 순서와 호흡 연결 익히기",
+    mid:"복합 동작에서 조절 유지",
+    late:"목표 활동(직업·운동)과 연결된 부하와 속도",
+    retest:["squat","single_leg_squat","rolldown"]}
+};
+const DORDER=["breath","pelvis","lumbo","hipstab","hipmob","thoracic","scap","cervical","foot","integration"];
+
+/* ---------- 1. 기본 정보 ---------- */
+const GOALS=["체형 개선","통증 케어","기능 회복","재활 및 재활 후 복귀","근력 강화","산전·산후","스포츠 퍼포먼스","스트레스 관리","다이어트"];
+const POSTURE_HABITS=["장시간 좌식","장시간 서서 일함","운전 많음","한쪽 어깨로 가방","다리 꼬고 앉기","한쪽으로 씹기","하이힐 착용","엎드려 자기","한쪽으로 누워 자기","육아·아이 안기","반복적인 회전 동작","무거운 물건 드는 일","장시간 스마트폰·모니터"];
+/* 진단 · 병력 — 그룹별. 체크하면 후속 질문(정보 출처·현재 증상·치료·제한)이 열립니다 */
+const DX_GROUPS=[
+ {g:"심혈관 · 대사",items:["고혈압","저혈압","고지혈증(이상지질혈증)","당뇨 1형","당뇨 2형","전당뇨·내당능장애","대사증후군",
+   "협심증·심근경색","부정맥","심부전","판막질환","스텐트·심장수술 이력","심장재활 진행 중","뇌졸중·일과성허혈발작",
+   "말초동맥질환","심부정맥혈전증 이력","갑상선기능항진","갑상선기능저하","통풍","만성신장질환","간질환","빈혈"]},
+ {g:"호흡",items:["천식","만성폐쇄성폐질환","수면무호흡","기타 호흡기질환"]},
+ {g:"척추 · 관절",items:["경추 디스크","요추 디스크","척추관 협착증","척추전방전위증","척추측만증","강직성척추염",
+   "골관절염","류마티스관절염","오십견","회전근개 질환","반월판·연골 손상","인대 파열 이력","족저근막염",
+   "손목터널증후군","고관절 충돌증후군","인공관절 수술","관절 과가동성 진단"]},
+ {g:"뼈 · 골절 위험",items:["골다공증","골감소증","척추 압박골절 이력","가벼운 충격으로 골절된 적 있음","장기 스테로이드 사용"]},
+ {g:"신경",items:["좌골신경통","말초신경병증(당뇨성 포함)","현훈·전정기능 이상","편두통","파킨슨병","다발성경화증","뇌전증"]},
+ {g:"소화 · 비뇨",items:["역류성식도염","과민성대장증후군","염증성장질환","요실금 진단","골반저 기능이상 진단","탈장"]},
+ {g:"그 외",items:["암 치료 이력","암 치료 중","자가면역질환","섬유근육통","우울·불안 진단","수면장애 진단","기타"]}
+];
+const DIAGNOSES=DX_GROUPS.reduce((a,g)=>a.concat(g.items),[]);
+const DX_SOURCE=["의료진 진단 (회원 보고)","진료 자료 확인함","회원 추정","미확인"];
+const DX_STATUS=["현재 증상 없음","현재 증상 있음","미확인"];
+const DX_CARE=["치료·재활 받는 중","치료 종료","받지 않음","미확인"];
+const DISCOMFORTS=["두통","빈혈","소화불량","변비","불면증","우울함","통증"];
+const SENS=[{v:1,t:"1 · 둔한 편"},{v:2,t:"2"},{v:3,t:"3 · 보통"},{v:4,t:"4"},{v:5,t:"5 · 매우 예민"}];
+const EXPERIENCE=["운동 경험 없음","타 운동 경험","필라테스 6개월 미만","필라테스 6개월~2년","필라테스 2년 이상"];
+/* 즉시 의료 평가가 필요한 신호 — 하나라도 있으면 우선순위 생성을 보류합니다 */
+const URGENT_FLAGS=[
+  "대소변 조절 변화 또는 회음부 감각 저하",
+  "새로 생긴 한쪽 다리의 통증·부종·열감",
+  "흉통 · 호흡곤란 · 식은땀",
+  "갑작스러운 심한 두통, 말 어눌함, 한쪽 마비",
+  "발열을 동반한 척추 통증",
+  "최근 외상 후 심한 통증 또는 변형",
+  "빠르게 진행되는 근력 저하",
+  "안정 시에도 조절되지 않는 심한 통증"
+];
+/* 수업 전 확인을 권하는 신호 */
+const WATCH_FLAGS=[
+  "야간통 또는 안정 시 지속되는 통증","점점 심해지는 통증","팔·다리 저림이나 감각 이상",
+  "근력이 눈에 띄게 떨어짐","최근 낙상 이력","원인 모를 체중 감소","암 치료 이력 + 새로운 통증",
+  "어지럼 · 시야 변화","최근 6주 이내 수술","운동 중 흉부 불편감 경험","실신 또는 아찔한 느낌",
+  "평소와 다른 숨참","임신 중 출혈·복통","혈압이 조절되지 않는다고 안내받음"
+];
+const RED_FLAGS=WATCH_FLAGS;
+
+/* 통증 · 증상 세부 */
+const PAIN_SITES=["목","어깨","팔꿈치·손목","등(흉추)","허리","골반·천장관절","엉덩이","고관절",
+  "허벅지","무릎","종아리","발목·발","턱관절"];
+const PAIN_ONSET=["1개월 미만","1~6개월","6개월~1년","1년 이상","반복적으로 재발"];
+const PAIN_TRAUMA=["외상 없음","넘어짐·부딪힘","교통사고","운동 중 부상","출산 이후","수술 이후","미확인"];
+const PAIN_TREND=["최근 좋아지는 중","변화 없음","최근 나빠지는 중","오르내림 반복"];
+const IMPACT=["영향 없음","조금 불편","자주 방해됨","크게 방해됨"];
+const NEURO=["저림","감각이 둔함","팔·다리로 뻗치는 통증","새로 생긴 힘 빠짐","물건을 자주 떨어뜨림",
+  "발이 끌림","걸을 때 휘청거림","손발이 차고 색이 변함","밤에 저려서 깸"];
+const EX_SYMPTOM=["운동 중 흉부 불편감","운동 중 심한 두근거림","운동 중 아찔함·실신","평소보다 숨이 참",
+  "운동 후 오래 가는 피로","운동 중 혈압 이상 안내받음","저혈당 경험"];
+const JOINT_INSTAB=["관절이 빠진 적 있음","반복적인 염좌","관절이 빠질 듯한 느낌","끝범위에서 통증",
+  "관절이 잘 꺾임(과가동)","걷다가 무릎이 꺾임","어깨가 자주 빠지는 느낌"];
+const PELVIC=["기침·재채기 때 소변이 샘","운동 중 소변이 샘","소변이 급하고 참기 어려움",
+  "골반이 내려앉는 느낌","골반·회음부 통증","복부 중앙이 볼록하게 솟음","수술 부위가 당기거나 저림",
+  "변 조절이 어려움","복압을 주면 증상이 생김"];
+const FALLS=["최근 1년 내 낙상","서 있다 휘청거림","일어설 때 어지럼","시력 문제","보행 보조기 사용",
+  "넘어질까 봐 활동을 줄임","발 감각이 둔함"];
+const MED_TAGS=["혈압약","혈당약·인슐린","고지혈증약","항응고제·항혈소판제","스테로이드","골다공증약",
+  "갑상선약","진통제·소염제","근이완제","신경통약","호르몬제","항우울·항불안제","수면제"];
+const MED_EFFECT=["어지럼","졸림","저혈당 경험","근육통","기립성 어지럼","최근 용량 변경"];
+const REHAB_STAGE=["수술 전","급성기(6주 이내)","회복기(6주~3개월)","강화기(3개월 이후)","재활 종료"];
+const LOAD_LIMIT=["제한 없음","부분 체중부하","체중부하 금지","가동범위 제한 있음","의료진 확인 필요"];
+const SLEEPQ=["잘 잠","자주 깸","통증으로 깸","거의 못 잠"];
+const FATIGUE=["보통","쉽게 피로","일상에서 지침","회복이 오래 걸림"];
+const FEAR=["없음","조금 있음","많이 있음"];
+const RECOVERY=["수업 다음 날 더 편해짐","변화 없음","24시간 안에 회복","48시간 이상 불편함"];
+const SINCE_LAST=["새 증상 생김","진료·검사 받음","약이 바뀜","통증이 늘었음","컨디션 좋음","변화 없음"];
+const SPECIAL=["임신 중","산후 12주 이내","산후 12주 이후","제왕절개 이력","복직근 이개 확인됨","골다공증 진단","디스크 진단 이력","척추 수술 이력","관절 과이완성"];
+const PHOTOSLOTS=[{k:"front",t:"정면"},{k:"back",t:"후면"},{k:"left",t:"좌측"},{k:"right",t:"우측"}];
+
+/* ---------- 2. 정적 관찰 ---------- */
+/* s: 좌우 구분 필요 항목 */
+const STATIC=[
+ {g:"앞에서",note:"정면에서 좌우 대칭과 정렬을 봅니다",items:[
+  {id:"head_tilt",t:"머리 측방 기울임",s:1,w:{cervical:1}},
+  {id:"head_rot",t:"머리 회전",s:1,w:{cervical:1}},
+  {id:"sh_high",t:"어깨 높음",s:1,w:{scap:1,cervical:1}},
+  {id:"ribflare",t:"하부 흉곽 벌어짐",w:{breath:1,lumbo:1}},
+  {id:"rib_rot",t:"흉곽 회전",s:1,w:{breath:1,thoracic:1}},
+  {id:"rib_shift",t:"흉곽 측방 이동",s:1,w:{breath:1,lumbo:1}},
+  {id:"asis_high",t:"ASIS 높음",s:1,w:{pelvis:1}},
+  {id:"pelvis_rot_ant",t:"골반 전방 회전",s:1,w:{pelvis:1,hipstab:1}},
+  {id:"knee_valgus_st",t:"무릎 안쪽으로 모임",s:1,w:{hipstab:1,foot:1}},
+  {id:"knee_varus_st",t:"무릎 바깥쪽 벌어짐",s:1,w:{hipstab:1,foot:1}},
+  {id:"patella_in",t:"슬개골 안쪽 지향",s:1,w:{hipstab:1,hipmob:1}},
+  {id:"tibia_erot",t:"경골 외회전",s:1,w:{foot:1}},
+  {id:"foot_pron",t:"발 회내(아치 낮음)",s:1,w:{foot:1}},
+  {id:"foot_sup",t:"발 회외(아치 높음)",s:1,w:{foot:1}},
+  {id:"hallux_valgus",t:"무지외반",s:1,w:{foot:1}},
+  {id:"toe_out",t:"발끝 과하게 벌어짐",s:1,w:{foot:1,hipmob:1}},
+  {id:"weight_bias",t:"체중 편중",s:1,w:{hipstab:1,pelvis:1}}
+ ]},
+ {g:"옆에서",note:"시상면 정렬. 전체 유형도 함께 체크",items:[
+  {id:"fhp",t:"전방 두부 자세",w:{cervical:1,thoracic:1}},
+  {id:"cerv_lord_inc",t:"경추 전만 증가",w:{cervical:1}},
+  {id:"kyph_inc",t:"흉추 후만 증가",w:{thoracic:1,scap:1}},
+  {id:"thor_flat",t:"흉추 평평함",w:{thoracic:1,breath:1}},
+  {id:"sh_forward",t:"어깨 전방 위치",w:{scap:1}},
+  {id:"rib_ant",t:"흉곽 전방 이동",w:{breath:1,lumbo:1}},
+  {id:"apt",t:"골반 전방 경사",w:{pelvis:1,hipmob:1}},
+  {id:"ppt",t:"골반 후방 경사",w:{pelvis:1,hipmob:1}},
+  {id:"lumb_lord_inc",t:"요추 전만 증가",w:{lumbo:1,pelvis:1}},
+  {id:"lumb_lord_dec",t:"요추 전만 감소",w:{lumbo:1,pelvis:1}},
+  {id:"knee_hyper",t:"무릎 과신전",s:1,w:{hipstab:1,foot:1}},
+  {id:"knee_flex_st",t:"무릎 굴곡 유지",s:1,w:{hipmob:1}},
+  {id:"ankle_fwd",t:"발목 전방 이동",w:{foot:1}},
+  {id:"type_kl",t:"유형: 후만-전만형",w:{pelvis:1,thoracic:1}},
+  {id:"type_flat",t:"유형: 편평등형(플랫백)",w:{thoracic:1,pelvis:1}},
+  {id:"type_sway",t:"유형: 스웨이백형",w:{lumbo:1,pelvis:1,hipstab:1}}
+ ]},
+ {g:"뒤에서",note:"견갑과 골반 좌우 높이, 척추 곡선",items:[
+  {id:"scap_wing_st",t:"익상 견갑",s:1,w:{scap:1}},
+  {id:"scap_elev",t:"견갑 거상",s:1,w:{scap:1,cervical:1}},
+  {id:"scap_abd",t:"견갑 전인",s:1,w:{scap:1}},
+  {id:"scap_downrot",t:"견갑 하방회전",s:1,w:{scap:1}},
+  {id:"scap_low",t:"견갑 하각 낮음",s:1,w:{scap:1,thoracic:1}},
+  {id:"spine_th_conv",t:"흉추 볼록",s:1,w:{thoracic:1,breath:1}},
+  {id:"spine_lum_conv",t:"요추 볼록",s:1,w:{lumbo:1,pelvis:1}},
+  {id:"psis_high",t:"PSIS 높음",s:1,w:{pelvis:1}},
+  {id:"glut_fold_low",t:"둔부 주름 낮음",s:1,w:{hipstab:1}},
+  {id:"pop_fold_high",t:"슬와 주름 높음",s:1,w:{hipmob:1}},
+  {id:"calc_valgus",t:"종골 외반",s:1,w:{foot:1}},
+  {id:"calc_varus",t:"종골 내반",s:1,w:{foot:1}}
+ ]}
+];
+
+/* ---------- 3. 움직임 평가 ---------- */
+const TESTS=[
+ {id:"breathing",name:"호흡 관찰",en:"Breathing",how:"앙와위·앉은 자세에서 손을 하부 늑골에 대고 3~5회 호흡",items:[
+  {id:"br_upper",t:"상부 흉곽 우세",w:{breath:3}},
+  {id:"br_lat_lim",t:"측방 늑골 확장 제한",s:1,w:{breath:2,thoracic:1}},
+  {id:"br_belly",t:"복부만 팽창",w:{breath:2,lumbo:1}},
+  {id:"br_neck",t:"목 보조근 과활성",w:{breath:2,cervical:2}},
+  {id:"br_hold",t:"동작 중 호흡 정지",w:{breath:2,lumbo:1}},
+  {id:"br_asym_low",t:"하부 흉곽 좌우 비대칭",w:{breath:2,thoracic:1}},
+  {id:"br_flare_fixed",t:"흉곽 벌어진 채 확장 거의 없음",w:{breath:3,lumbo:1}},
+  {id:"br_no_depress",t:"날숨 끝 흉곽 하강 안 됨",w:{breath:2,lumbo:1}},
+  {id:"br_post_lim",t:"후방 늑골 확장 제한",w:{breath:2,thoracic:1}},
+  {id:"br_paradox",t:"역호흡(들숨에 배가 들어감)",w:{breath:3}},
+  {id:"br_shallow",t:"얕고 빠른 호흡",w:{breath:2}}
+ ]},
+ {id:"rolldown",name:"롤다운",en:"Roll down",how:"선 자세에서 분절 굴곡으로 내려갔다 올라오기 2~3회",items:[
+  {id:"rd_upper_lim",t:"상부 분절 움직임 제한",w:{thoracic:2}},
+  {id:"rd_hinge",t:"특정 요추 구간 과굴곡",w:{lumbo:2}},
+  {id:"rd_rot",t:"회전 동반",s:1,w:{pelvis:2,thoracic:1}},
+  {id:"rd_ham",t:"햄스트링 긴장으로 범위 제한",w:{hipmob:2}},
+  {id:"rd_return_lumb",t:"복귀 시 요추 먼저 신전",w:{lumbo:2,pelvis:1}},
+  {id:"rd_shift",t:"체중 앞·뒤 쏠림",w:{foot:2,hipstab:1}}
+ ]},
+ {id:"shoulder_flexion",name:"어깨 굴곡",en:"Shoulder flexion",how:"선 자세와 앙와위에서 양팔 머리 위로 올리기",items:[
+  {id:"sf_rom",t:"가동범위 제한",s:1,w:{scap:2,thoracic:1}},
+  {id:"sf_ribflare",t:"흉곽 벌어짐 동반",w:{breath:2,lumbo:2}},
+  {id:"sf_lumb_ext",t:"요추 신전 보상",w:{lumbo:3}},
+  {id:"sf_scap_elev",t:"견갑 조기 거상",s:1,w:{scap:2,cervical:1}},
+  {id:"sf_head_fwd",t:"두부 전방 이동",w:{cervical:2}},
+  {id:"sf_asym",t:"좌우 움직임 차이 뚜렷",w:{scap:2,thoracic:1}}
+ ]},
+ {id:"thoracic_rotation",name:"흉추 회전",en:"Thoracic rotation",how:"앉거나 사족지지에서 골반 고정 후 상체 회전",items:[
+  {id:"tr_lim",t:"회전 제한",s:1,w:{thoracic:3}},
+  {id:"tr_pelvis",t:"골반이 함께 돌아감",s:1,w:{pelvis:2,thoracic:1}},
+  {id:"tr_lumb",t:"요추로 대체",w:{lumbo:2,thoracic:1}},
+  {id:"tr_sh_lead",t:"어깨 움직임으로 대체",w:{scap:2}}
+ ]},
+ {id:"squat",name:"스쿼트",en:"Squat",how:"양발 골반너비, 편안한 깊이까지 3~5회",items:[
+  {id:"sq_shift",t:"체중 이동",s:1,w:{hipstab:3,pelvis:1}},
+  {id:"sq_valgus",t:"무릎 안쪽 붕괴",s:1,w:{hipstab:3,foot:1}},
+  {id:"sq_buttwink",t:"하강 끝 요추 굴곡",w:{hipmob:2,lumbo:1}},
+  {id:"sq_heel",t:"뒤꿈치 들림",s:1,w:{foot:3}},
+  {id:"sq_trunk",t:"상체 과도한 전방 기울기",w:{hipmob:2,lumbo:1}},
+  {id:"sq_depth",t:"깊이 제한",w:{hipmob:2,foot:1}},
+  {id:"sq_lumb_ext",t:"하강 중 요추 신전 증가",w:{lumbo:2,pelvis:1}}
+ ]},
+ {id:"single_leg_stance",name:"한 발 서기",en:"Single leg stance",how:"좌·우 각 30초. 지지하는 다리 기준으로 체크",items:[
+  {id:"sls_drop",t:"반대쪽 골반 하강",s:1,w:{hipstab:3,pelvis:1}},
+  {id:"sls_trunk",t:"몸통 측방 이동",s:1,w:{hipstab:2,lumbo:1}},
+  {id:"sls_foot",t:"발·발목 흔들림",s:1,w:{foot:3}},
+  {id:"sls_short",t:"20초 미만 유지",s:1,w:{hipstab:2,foot:1}},
+  {id:"sls_eyes",t:"눈 감으면 뚜렷하게 불안정",s:1,w:{foot:2,hipstab:1}},
+  {id:"sls_toe_grip",t:"발가락으로 움켜쥠",s:1,w:{foot:2}}
+ ]},
+ {id:"single_leg_squat",name:"한 발 스쿼트 · 스텝다운",en:"Single leg squat",how:"낮은 스텝에서 내려딛기 좌·우 5회",items:[
+  {id:"slsq_valgus",t:"무릎 안쪽 붕괴",s:1,w:{hipstab:3,foot:1}},
+  {id:"slsq_pelvis_rot",t:"골반 회전 발생",s:1,w:{pelvis:2,hipstab:2}},
+  {id:"slsq_trunk_lean",t:"몸통 기울임으로 보상",s:1,w:{hipstab:2,lumbo:1}},
+  {id:"slsq_control_ecc",t:"내려가는 구간 조절 어려움",s:1,w:{hipstab:2,integration:1}}
+ ]},
+ {id:"hip_extension",name:"고관절 신전",en:"Hip extension (prone)",how:"복와위에서 무릎 편 채 다리 들기 좌·우",items:[
+  {id:"he_lumb",t:"요추 신전 보상",s:1,w:{lumbo:3,pelvis:1}},
+  {id:"he_pel_rot",t:"골반 회전",s:1,w:{pelvis:3}},
+  {id:"he_rom",t:"신전 가동범위 제한",s:1,w:{hipmob:3}},
+  {id:"he_erector",t:"척추기립근 먼저 작동",s:1,w:{lumbo:2}},
+  {id:"he_ham_dom",t:"햄스트링 우세·경련",s:1,w:{hipstab:2}}
+ ]},
+ {id:"aslr",name:"능동 하지 직거상",en:"ASLR",how:"앙와위에서 무릎 편 채 한쪽 다리 들기",items:[
+  {id:"aslr_rom",t:"가동범위 제한",s:1,w:{hipmob:2}},
+  {id:"aslr_pel_rot",t:"골반 회전·기울임 발생",s:1,w:{lumbo:2,pelvis:2}},
+  {id:"aslr_effort",t:"좌우 수행 난이도 차이 뚜렷",w:{lumbo:2,hipstab:1}},
+  {id:"aslr_breath",t:"수행 중 호흡 정지",w:{breath:2}}
+ ]},
+ {id:"hip_rotation",name:"고관절 회전 가동",en:"Hip rotation ROM",how:"복와위 또는 앉은 자세에서 내회전·외회전",items:[
+  {id:"hr_ir",t:"내회전 제한",s:1,w:{hipmob:3}},
+  {id:"hr_er",t:"외회전 제한",s:1,w:{hipmob:3}},
+  {id:"hr_asym",t:"좌우 비대칭 뚜렷",w:{hipmob:2,pelvis:1}}
+ ]},
+ {id:"thomas",name:"고관절 굴곡근 길이",en:"Thomas-type screen",how:"테이블 끝에 누워 한쪽 무릎 당기기",items:[
+  {id:"th_psoas",t:"장요근 단축 소견",s:1,w:{hipmob:3,pelvis:1}},
+  {id:"th_rf",t:"대퇴직근 단축 소견",s:1,w:{hipmob:2}},
+  {id:"th_tfl",t:"대퇴근막장근·장경대 긴장",s:1,w:{hipmob:2,hipstab:1}}
+ ]},
+ {id:"bridge",name:"브릿지",en:"Bridging",how:"앙와위 분절 브릿지 3~5회",items:[
+  {id:"bg_ham",t:"햄스트링 우세·경련",w:{hipstab:2,lumbo:1}},
+  {id:"bg_lumb",t:"요추 신전 우세",w:{lumbo:3}},
+  {id:"bg_seg",t:"분절 움직임 제한",w:{thoracic:1,lumbo:2}},
+  {id:"bg_shift",t:"좌우 체중 편중",s:1,w:{hipstab:2,pelvis:1}},
+  {id:"bg_rib",t:"흉곽 벌어짐",w:{breath:2}}
+ ]},
+ {id:"curlup",name:"컬업 · 복부 압력",en:"Curl up / IAP",how:"앙와위 상체 굴곡 시 복부 관찰과 촉진",items:[
+  {id:"cu_doming",t:"복부 돌출(doming)",w:{lumbo:3,breath:2}},
+  {id:"cu_dr",t:"복직근 이개 촉지",w:{lumbo:3,breath:2},caution:1},
+  {id:"cu_neck",t:"목으로 당겨 올림",w:{cervical:2}},
+  {id:"cu_hold",t:"호흡 정지",w:{breath:2}},
+  {id:"cu_pelvis",t:"골반 후방경사로 대체",w:{pelvis:2}}
+ ]},
+ {id:"quadruped",name:"사족지지",en:"Quadruped",how:"사족지지 로킹과 한 팔·한 다리 들기",items:[
+  {id:"qr_lumb_early",t:"뒤로 앉을 때 요추 조기 굴곡",w:{hipmob:2,lumbo:2}},
+  {id:"qr_wing",t:"익상 견갑",s:1,w:{scap:3}},
+  {id:"qr_shift",t:"체중 지지 시 어깨 무너짐",s:1,w:{scap:2}},
+  {id:"qr_pel_rot",t:"다리 들 때 골반 회전",s:1,w:{pelvis:2,lumbo:1}}
+ ]},
+ {id:"ankle_df",name:"발목 배측굴곡",en:"Ankle dorsiflexion",how:"무릎-벽 검사, 뒤꿈치 유지한 채 거리 측정",items:[
+  {id:"adf_lim",t:"제한(약 10cm 미만)",s:1,w:{foot:3}},
+  {id:"adf_asym",t:"좌우 차이 뚜렷",w:{foot:2}},
+  {id:"adf_knee_in",t:"무릎이 안쪽으로 무너짐",s:1,w:{foot:2,hipstab:1}}
+ ]},
+ {id:"cervical",name:"경추 움직임",en:"Cervical",how:"회전·굴곡 관찰",items:[
+  {id:"cr_lim",t:"회전 제한",s:1,w:{cervical:3}},
+  {id:"cf_chin",t:"턱 내밀며 굴곡",w:{cervical:3}},
+  {id:"cr_sh_lift",t:"회전 시 어깨 따라 올라감",s:1,w:{cervical:2,scap:1}}
+ ]}
+,
+ {id:"adl",name:"기본 생활 동작",en:"Everyday movement",how:"걷기·방향 전환·의자에서 일어나기·계단·바닥에서 일어나기를 관찰 (보조가 필요하면 옆에서 지지)",items:[
+  {id:"adl_gait",t:"걷기 좌우 비대칭",w:{hipstab:2,foot:1}},
+  {id:"adl_turn",t:"방향 전환 시 불안정",w:{integration:2,hipstab:1}},
+  {id:"adl_sts",t:"의자에서 일어설 때 손 지지 필요",w:{hipstab:2,integration:1}},
+  {id:"adl_stairs",t:"계단에서 통증·불안정",s:1,w:{hipstab:2,foot:1}},
+  {id:"adl_floor",t:"바닥에서 일어나기 어려움",w:{integration:2,hipmob:1}},
+  {id:"adl_carry",t:"물건을 들 때 허리로 버팀",w:{lumbo:2}}
+ ]},
+ {id:"endurance",name:"반복 · 지구력",en:"Repetition & endurance",how:"같은 동작을 8~10회 반복하며 첫 회와 마지막 회의 차이, 휴식 후 회복을 관찰",items:[
+  {id:"en_decay",t:"반복할수록 조절이 흐트러짐",w:{integration:3}},
+  {id:"en_first",t:"첫 동작과 마지막 동작 차이가 큼",w:{integration:2}},
+  {id:"en_hold",t:"버틸 때 호흡을 참음",w:{breath:2,lumbo:1}},
+  {id:"en_recover",t:"휴식 후에도 회복이 느림",w:{integration:2}},
+  {id:"en_pain",t:"반복 중 증상이 재현됨",caution:1,w:{integration:1}}
+ ]},
+ {id:"load_support",name:"지지 · 부하 변화",en:"Support & load",how:"손 지지 유무, 양측·편측, 저항과 속도를 바꿔가며 반응을 관찰",items:[
+  {id:"ls_nohand",t:"손 지지를 빼면 무너짐",w:{hipstab:2,integration:2}},
+  {id:"ls_side",t:"편측에서 뚜렷한 차이",s:1,w:{hipstab:2,pelvis:1}},
+  {id:"ls_resist",t:"저항이 커지면 보상이 나타남",w:{integration:2,lumbo:1}},
+  {id:"ls_speed",t:"속도를 높이면 조절을 잃음",w:{integration:2}},
+  {id:"ls_light",t:"저부하에서 오히려 인지가 어려움",w:{integration:1}}
+ ]},
+ {id:"abdo_resp",name:"복압 · 복부 반응",en:"Intra-abdominal response",how:"부하 동작 중 복부 중앙과 호흡, 골반저 증상 보고를 함께 확인",items:[
+  {id:"ab_dome",t:"복부 중앙이 볼록하게 솟음",w:{lumbo:3,breath:1}},
+  {id:"ab_hold",t:"숨을 참고 버팀",w:{breath:2,lumbo:1}},
+  {id:"ab_pf",t:"동작 중 골반저 증상 보고",caution:1,w:{lumbo:1,breath:1}},
+  {id:"ab_dir",t:"복부 힘의 방향을 찾지 못함",w:{lumbo:2,integration:1}},
+  {id:"ab_flare",t:"부하에서 흉곽이 들림",w:{breath:2,lumbo:2}}
+ ]},
+ {id:"hypermob",name:"과가동성 확인",en:"Hypermobility screen",how:"끝범위를 강제하지 말고 관찰만 합니다. 범위보다 조절 능력을 봅니다",items:[
+  {id:"hm_elbow",t:"팔꿈치 과신전",s:1,w:{scap:1}},
+  {id:"hm_knee",t:"무릎 과신전",s:1,w:{hipstab:2}},
+  {id:"hm_thumb",t:"엄지가 전완에 닿음",s:1,w:{scap:1}},
+  {id:"hm_pinky",t:"새끼손가락 90도 이상 젖혀짐",s:1,w:{scap:1}},
+  {id:"hm_end",t:"끝범위에서 불안정·통증",w:{hipstab:2,integration:1}},
+  {id:"hm_sprain",t:"반복적인 염좌·탈구 이력",w:{hipstab:2}}
+ ]},
+ {id:"senior",name:"시니어 기능 평가 (선택)",en:"Senior function",how:"안전 보조가 가능한 조건에서만 실시. 의자는 벽에 붙이고 옆에서 대기하세요",items:[
+  {id:"sn_sts30",t:"30초 의자 일어서기 횟수가 또래 기준 미만",w:{hipstab:2,integration:1}},
+  {id:"sn_balance",t:"4단계 균형 자세 유지 어려움",w:{foot:2,hipstab:2}},
+  {id:"sn_tug",t:"일어나 걷고 돌아와 앉기 12초 이상",w:{integration:3,hipstab:1}},
+  {id:"sn_dual",t:"걸으면서 대화하면 속도가 크게 느려짐",w:{integration:2}},
+  {id:"sn_fear",t:"넘어질까 봐 동작을 주저함",w:{integration:1}}
+ ]}
+];
+
+/* ---------- 4. 큐잉 반응 ---------- */
+const CUES=[
+ {id:"tactile",t:"촉각 큐잉",sub:"손으로 위치를 짚어줄 때",opts:["잘 반응","보통","반응 낮음"]},
+ {id:"visual",t:"시각 큐잉",sub:"거울·시범을 보여줄 때",opts:["잘 반응","보통","반응 낮음"]},
+ {id:"verbal",t:"언어 큐잉",sub:"말로 설명할 때",opts:["잘 반응","보통","반응 낮음"]},
+ {id:"imagery",t:"이미지·은유 큐잉",sub:"'꼬리뼈를 말아서' 같은 표현",opts:["잘 반응","보통","반응 낮음"]},
+ {id:"lowload",t:"저부하에서 움직임 인지",opts:["높음","보통","낮음"]},
+ {id:"highload",t:"저항·고부하에서 움직임 인지",opts:["높음","보통","낮음"]},
+ {id:"eyesclosed",t:"눈 감고 수행",opts:["유지됨","약간 저하","뚜렷이 저하"]},
+ {id:"cuecount",t:"동시에 처리 가능한 지시",opts:["한 번에 하나","두 가지 가능","세 가지 이상"]},
+ {id:"learning",t:"학습 속도",opts:["빠름","보통","느림"]},
+ {id:"sidediff",t:"좌우 인지 차이",opts:["없음","왼쪽이 둔함","오른쪽이 둔함"]},
+ {id:"paincaution",t:"통증에 대한 경계",opts:["낮음","보통","높음"]},
+ {id:"focus",t:"집중 지속",opts:["긴 편","보통","짧은 편"]}
+];
+
+
+/* ============================================================
+   공통 코어 — 저장 · 동기화 · 다중 센터 모델
+   ============================================================ */
+const KEY="movemap:v4";
+const SESSKEY="movemap:session";
+const now=()=>Date.now();
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmt=d=>d?String(d).slice(2).replace(/-/g,"."):"";
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const digits=v=>String(v||"").replace(/\D/g,"");
+const ageOf=d=>{const y=parseInt(String(d||"").slice(0,4),10);return y?new Date().getFullYear()-y:"";};
+const telFmt=v=>{const n=digits(v);
+  if(n.length===11)return n.replace(/(\d{3})(\d{4})(\d{4})/,"$1-$2-$3");
+  if(n.length===10)return n.replace(/(\d{3})(\d{3})(\d{4})/,"$1-$2-$3");return v||"";};
+const dobLine=d=>{const a=ageOf(d);return d?`${fmt(d)}${a?` (${a}세)`:""}`:"";};
+/* 0000-00-00 형식 마스크 */
+function maskDate(v){const n=digits(v).slice(0,8);
+  if(n.length<=4)return n;
+  if(n.length<=6)return n.slice(0,4)+"-"+n.slice(4);
+  return n.slice(0,4)+"-"+n.slice(4,6)+"-"+n.slice(6);}
+const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"");
+function dateField(id,val,label,extra){
+  return `<div${extra&&extra.wide?' class="wide"':''}><label class="f" for="${id}">${label}${extra&&extra.age?` <span class="auto" id="${id}_age"></span>`:""}</label>
+    <input id="${id}" type="text" inputmode="numeric" maxlength="10" placeholder="0000-00-00"
+      data-mask="date" ${extra&&extra.age?`data-dobauto="${id}_age"`:""} ${extra&&extra.bind?`data-bind="${extra.bind}"`:""} value="${esc(val||"")}"></div>`;
+}
+/* 10분 단위 시간 */
+const TIMES=(()=>{const o=[];for(let h=6;h<23;h++)for(let m=0;m<60;m+=10)o.push(String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"));return o;})();
+const baseId=k=>k.split(":")[0];
+const sideOf=k=>k.split(":")[1]||"";
+const STATIC_INDEX={};STATIC.forEach(g=>g.items.forEach(i=>STATIC_INDEX[i.id]=i));
+const TEST_INDEX={};TESTS.forEach(t=>{t.index={};t.items.forEach(i=>t.index[i.id]=i);TEST_INDEX[t.id]=t;});
+const MAX_EXTRA_PHOTOS=4;
+
+function emptyDB(){return{v:5,centers:[],admins:[],staff:[],roles:[],rooms:[],members:[],sync:{url:"",key:"",space:"movemap"},updatedAt:0};}
+let DB=emptyDB();
+let SESSION=null;      // 로그인한 계정
+let CENTER_ID=null;    // 현재 보고 있는 센터
+
+const LS={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}};
+let MEM={};
+const Store={
+  async get(k){try{if(window.storage){const r=await window.storage.get(k);return r?r.value:null;}}catch(e){}
+    const v=LS.get(k);return v!==null?v:(MEM[k]||null);},
+  async set(k,v){MEM[k]=v;try{if(window.storage){await window.storage.set(k,v);return true;}}catch(e){}return LS.set(k,v);}
+};
+
+/* ---------- Supabase 동기화 ---------- */
+const Sync={
+  cfg(){return DB.sync||{};},
+  on(){const c=this.cfg();return !!(c.url&&c.key&&c.space);},
+  state:{busy:false,last:null,error:null},
+  head(){const c=this.cfg();return{apikey:c.key,Authorization:"Bearer "+c.key,"Content-Type":"application/json"};},
+  async pull(){
+    if(!this.on())return null;const c=this.cfg();
+    const r=await fetch(`${c.url.replace(/\/$/,"")}/rest/v1/movemap_data?center=eq.${encodeURIComponent(c.space)}&select=payload`,{headers:this.head()});
+    if(!r.ok)throw new Error("불러오기 실패 ("+r.status+")");
+    const j=await r.json();return j.length?j[0].payload:null;},
+  async push(p){
+    if(!this.on())return false;const c=this.cfg();
+    const r=await fetch(`${c.url.replace(/\/$/,"")}/rest/v1/movemap_data?on_conflict=center`,
+      {method:"POST",headers:Object.assign(this.head(),{Prefer:"resolution=merge-duplicates"}),
+       body:JSON.stringify([{center:c.space,payload:p,updated_at:new Date().toISOString()}])});
+    if(!r.ok)throw new Error("보내기 실패 ("+r.status+")");return true;},
+  async run(silent){
+    if(!this.on()||this.state.busy)return false;
+    this.state.busy=true;this.state.error=null;
+    try{const remote=await this.pull();if(remote)DB=mergeDB(DB,remote);
+      await this.push(DB);
+      this.state.last=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+      await saveLocal();if(!silent)toast("동기화했습니다");return true;
+    }catch(e){this.state.error=e.message||"연결 실패";if(!silent)toast("동기화 실패: "+this.state.error);return false;}
+    finally{this.state.busy=false;}}
+};
+function mergeList(a,b){const map={};
+  [...(a||[]),...(b||[])].forEach(x=>{if(!x||!x.id)return;
+    const c=map[x.id];if(!c||(x.updatedAt||0)>=(c.updatedAt||0))map[x.id]=x;});
+  return Object.values(map);}
+function mergeDB(local,remote){
+  const out=Object.assign({},remote,local);
+  ["centers","admins","staff","roles","rooms"].forEach(k=>out[k]=mergeList(local[k],remote[k]));
+  out.members=mergeList(local.members,remote.members).map(m=>{
+    const l=(local.members||[]).find(x=>x.id===m.id),r=(remote.members||[]).find(x=>x.id===m.id);
+    if(!l||!r)return m;
+    const base=Object.assign({},(l.updatedAt||0)>=(r.updatedAt||0)?l:r);
+    base.assessments=mergeList(l.assessments,r.assessments);
+    base.sessions=mergeList(l.sessions,r.sessions);
+    base.notes=mergeList(l.notes,r.notes);
+    return base;});
+  out.sync=local.sync&&local.sync.url?local.sync:remote.sync;
+  return out;}
+let pushTimer=null;
+async function saveLocal(){return Store.set(KEY,JSON.stringify(DB));}
+async function persist(opts){
+  DB.updatedAt=now();
+  const ok=await saveLocal();
+  if(!ok)toast("저장 공간에 접근할 수 없습니다");
+  if(Sync.on()&&!(opts&&opts.noSync)){clearTimeout(pushTimer);
+    pushTimer=setTimeout(()=>Sync.run(true).then(()=>{if(typeof syncBadge==="function")syncBadge();}),1200);}
+  return ok;}
+const touch=o=>{o.updatedAt=now();return o;};
+
+/* ---------- 모델 ---------- */
+function blankProfile(){return{
+  job:"",experience:"",goals:[],habits:[],
+  diagnoses:[],diagnosesEtc:"",conditions:{},
+  discomforts:[],discomfortsEtc:"",sensitivity:"",special:[],
+  redflags:[],urgent:[],watch:[],
+  painSites:[],painDetail:{},
+  pain:{onset:"",trauma:"",trend:"",quality:"",aggravate:"",relieve:"",
+    sleep:"",daily:"",nrsNow:"",nrsWorst:"",note:""},
+  neuro:[],neuroNote:"",
+  exsym:[],exsymNote:"",
+  surgeries:[],
+  joint:[],jointNote:"",
+  perinatal:{status:"",weeks:"",edd:"",birth:"",mode:"",complication:"",limit:"",feeding:""},
+  pelvic:[],pelvicNote:"",
+  fall:[],fallNote:"",
+  medTags:[],medEffects:[],meds:{list:"",changed:"",note:""},
+  life:{sleep:"",fatigue:"",fear:"",hard:"",recovery:""},
+  injury:"",discomfort:"",nrs:"",memo:""};}
+/* 주 호소 부위(없으면 첫 부위)의 통증 상세 */
+function mainPain(P){
+  const d=P.painDetail||{},list=P.painSites||[];
+  const key=list.find(s=>(d[s]||{}).main)||list[0];
+  return key?Object.assign({site:key},d[key]||{}):{};
+}
+function painLine(P){
+  const d=P.painDetail||{};
+  return (P.painSites||[]).map(s=>{const x=d[s]||{};
+    return s+(x.side?"("+x.side+")":"")+(x.nrs?" "+x.nrs+"/10":"")+(x.main?" · 주 호소":"");}).join(", ");
+}
+/* 안전 신호 모음 — 예전 자료(redflags)도 함께 읽습니다 */
+const urgentOf=m=>((m&&m.profile&&m.profile.urgent)||[]);
+const watchOf=m=>{const P=(m&&m.profile)||{};
+  return [].concat(P.watch||[],(P.redflags||[]).filter(f=>!(P.watch||[]).includes(f)));};
+function blankAssessment(type){return{id:uid(),date:today(),type:type||"초도 평가",
+  scope:{photos:true,statics:true,tests:true,cues:true},
+  photos:{extra:[]},statics:{},tests:{},cues:{},overrides:{},addons:[],pkg:10,planMemo:"",ovmemo:"",memo:"",updatedAt:now()};}
+const live=l=>(l||[]).filter(x=>x&&!x.deleted);
+const centerById=id=>(DB.centers||[]).find(c=>c.id===id);
+const curCenter=()=>centerById(CENTER_ID);
+const centerName=()=>{const c=curCenter();return c?c.name:"센터 미지정";};
+const members=()=>live(DB.members).filter(m=>m.centerId===CENTER_ID);
+const staffOf=cid=>live(DB.staff).filter(s=>(s.centers||[]).includes(cid||CENTER_ID));
+const rooms=()=>live(DB.rooms).filter(r=>r.centerId===CENTER_ID).sort((a,b)=>(a.order||0)-(b.order||0));
+const staffById=id=>(DB.staff||[]).find(s=>s.id===id);
+const memberById=id=>(DB.members||[]).find(m=>m.id===id);
+/* 권한 항목 — 대표관리자가 그룹마다 체크해서 부여 */
+const PERM_LIST=[
+  ["members_view","회원 조회"],
+  ["members_edit","회원 정보·담당 강사 수정"],
+  ["classes","수업 기록 조회"],
+  ["staff_view","강사 목록 조회"],
+  ["staff_edit","강사 등록·수정"],
+  ["rooms","룸 설정"],
+  ["del","기록 삭제"],
+  ["settings","센터 정보·백업"],
+  ["roles","권한 그룹 설정"],
+  ["admins","관리자 계정 관리"]
+];
+const COACH_PERMS=["members_view","members_edit","classes"];
+const roleById=id=>(DB.roles||[]).find(r=>r.id===id);
+const rolesOf=cid=>live(DB.roles).filter(r=>r.centerId===(cid||CENTER_ID)).sort((a,b)=>(a.order||0)-(b.order||0));
+function can(k){
+  if(!SESSION)return false;
+  if(!isAdmin())return COACH_PERMS.includes(k);      /* 강사용: 자기 회원에 대한 기본 권한만 */
+  if(SESSION.role==="owner")return true;             /* 대표관리자: 전부 */
+  const g=roleById(SESSION.roleId);
+  return !!(g&&g.perms&&g.perms[k]);
+}
+
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+
+/* ---------- 브라우저 뒤로가기 ---------- */
+const Nav={
+  stack:[],
+  init(){try{history.replaceState({mm:0},"");history.pushState({mm:1},"");}catch(e){}
+    window.addEventListener("popstate",()=>{
+      try{history.pushState({mm:1},"");}catch(e){}
+      if(typeof goBack==="function")goBack();});},
+  push(state){this.stack.push(JSON.stringify(state));if(this.stack.length>40)this.stack.shift();},
+  pop(){return this.stack.length?JSON.parse(this.stack.pop()):null;},
+  get depth(){return this.stack.length;}
+};
+
+async function bootData(){
+  const raw=await Store.get(KEY);
+  if(raw){try{DB=Object.assign(emptyDB(),JSON.parse(raw));}catch(e){}}
+  /* v3 이하 자료 이어받기 */
+  if(!DB.centers.length&&(DB.members.length||DB.staff.length||DB.admins.length)){
+    const c={id:uid(),name:"더블필라테스",en:"DOUBLE",code:"double",createdAt:today(),updatedAt:now()};
+    DB.centers.push(c);
+    DB.members.forEach(m=>{m.centerId=m.centerId||c.id;});
+    DB.staff.forEach(s=>{s.centers=s.centers&&s.centers.length?s.centers:[c.id];});
+    DB.rooms.forEach(r=>{r.centerId=r.centerId||c.id;});
+      DB.admins.forEach((a,i)=>{a.centerId=a.centerId||c.id;a.role=a.role||(i===0?"owner":"manager");});
+  }
+  DB.members.forEach(m=>{
+    m.profile=Object.assign(blankProfile(),m.profile||{});
+    /* 예전 통증 자료(부위:좌우) → 부위 + 부위별 상세로 옮기기 */
+    if((m.profile.painSites||[]).some(x=>String(x).includes(":"))){
+      const nd=m.profile.painDetail||{},ns=[];
+      m.profile.painSites.forEach(k=>{const p=String(k).split(":"),s=p[0],side=p[1]||"";
+        if(!ns.includes(s))ns.push(s);
+        nd[s]=nd[s]||{};if(side&&!nd[s].side)nd[s].side=side;});
+      m.profile.painSites=ns;m.profile.painDetail=nd;
+    }m.notes=m.notes||[];m.sessions=m.sessions||[];m.assessments=m.assessments||[];
+    m.updatedAt=m.updatedAt||now();
+    m.assessments.forEach(x=>{x.scope=x.scope||{photos:true,statics:true,tests:true,cues:true};x.photos=x.photos||{extra:[]};x.updatedAt=x.updatedAt||now();});
+    m.sessions.forEach(x=>x.updatedAt=x.updatedAt||now());
+    m.notes.forEach(x=>x.updatedAt=x.updatedAt||now());});
+  /* 권한 그룹 · 계정 보정 */
+  DB.roles=DB.roles||[];
+  (DB.centers||[]).forEach(c=>{if(!rolesOf(c.id).length)seedRoles(c.id);});
+  DB.admins.forEach(a=>{
+    a.centers=(a.centers&&a.centers.length)?a.centers:[a.centerId].filter(Boolean);
+    if(a.role!=="owner"&&!a.roleId){
+      const g=rolesOf(a.centerId)[0];if(g)a.roleId=g.id;
+    }
+    delete a.perms;
+  });
+  if(Sync.on()){try{const r=await Sync.pull();if(r){DB=mergeDB(DB,r);await saveLocal();}}catch(e){}}
+  const rawS=await Store.get(SESSKEY);
+  if(rawS){
+    let s=null;try{s=JSON.parse(rawS);}catch(e){s=null;}
+    if(s&&s.id){
+      APP_ROLE=s.role==="admin"?"admin":"coach";
+      SESSION=isAdmin()
+        ? live(DB.admins).find(a=>a.id===s.id&&a.active!==false)
+        : live(DB.staff).find(x=>x.id===s.id&&x.active!==false);
+      if(SESSION)CENTER_ID=s.centerId||(isAdmin()?SESSION.centerId:(SESSION.centers||[])[0])||null;
+      else APP_ROLE="coach";
+    }
+  }
+}
+async function setSession(o,cid,role){
+  if(role)APP_ROLE=role;
+  SESSION=o;CENTER_ID=o?(cid||(isAdmin()?(o.centerId||(o.centers||[])[0]):(o.centers||[])[0])):null;
+  await Store.set(SESSKEY,o?JSON.stringify({id:o.id,role:APP_ROLE,centerId:CENTER_ID}):"");
+}
+async function setCenter(cid){CENTER_ID=cid;if(SESSION)await Store.set(SESSKEY,JSON.stringify({id:SESSION.id,centerId:cid}));}
+
+/* ============================================================
+   채점 · 우선순위
+   ============================================================ */
+function score(a){
+  const d={};DORDER.forEach(k=>d[k]={static:0,move:0,cue:0,total:0,from:{static:[],move:[]}});
+  Object.keys(a.statics||{}).forEach(k=>{
+    if(!a.statics[k])return;const it=STATIC_INDEX[baseId(k)];if(!it)return;
+    Object.entries(it.w).forEach(([dom,w])=>{d[dom].static+=w;d[dom].from.static.push(it.t+(sideOf(k)?" "+sideOf(k):""));});
+  });
+  Object.entries(a.tests||{}).forEach(([tid,rec])=>{
+    if(!rec||!rec.items)return;const T=TEST_INDEX[tid];if(!T)return;
+    Object.keys(rec.items).forEach(k=>{
+      if(!rec.items[k])return;const it=T.index[baseId(k)];if(!it)return;
+      Object.entries(it.w).forEach(([dom,w])=>{d[dom].move+=w;d[dom].from.move.push(T.name+" · "+it.t+(sideOf(k)?" "+sideOf(k):""));});
+    });
+  });
+  const c=a.cues||{};
+  if(c.eyesclosed==="뚜렷이 저하"){d.foot.cue+=1;d.hipstab.cue+=1;}
+  if(c.lowload==="낮음")d.integration.cue+=1;
+  if(c.sidediff&&c.sidediff!=="없음")d.pelvis.cue+=1;
+  DORDER.forEach(k=>d[k].total=d[k].static+d[k].move+d[k].cue);
+  return d;
+}
+function priorities(a){
+  const d=score(a);
+  let list=DORDER.map(k=>({dom:k,...d[k],confirmed:d[k].move>0})).filter(x=>x.total>0);
+  list.sort((x,y)=>y.move!==x.move?y.move-x.move:y.total-x.total);
+  const ov=a.overrides||{};
+  list.forEach(x=>x.state=ov[x.dom]||"agree");
+  const active=list.filter(x=>x.state!=="exclude");
+  let ranked=active.filter(x=>x.state!=="demote").concat(active.filter(x=>x.state==="demote"));
+  (a.addons||[]).forEach(dom=>{if(!ranked.find(x=>x.dom===dom))
+    ranked.unshift({dom,static:0,move:0,cue:0,total:0,confirmed:false,state:"manual",from:{static:[],move:[]}});});
+  return {scores:d,all:list,ranked};
+}
+function suggestions(a){
+  const {scores}=priorities(a);const out=[];
+  DORDER.forEach(dom=>{const s=scores[dom];
+    if(s.static>=2&&s.move===0){
+      const tests=(DOMAINS[dom].retest||[]).filter(t=>{const r=a.tests[t];return !r||!r.done;});
+      if(tests.length)out.push({dom,tests});
+    }});
+  return out;
+}
+
+/* ============================================================
+   세션 전략
+   ============================================================ */
+const PHASES=[
+  {key:"A",name:"평가 확인과 감각 인지",ratio:.15},
+  {key:"B",name:"1순위 기초 조절",ratio:.25},
+  {key:"C",name:"1·2순위 심화와 부하",ratio:.30},
+  {key:"D",name:"전신 통합",ratio:.18},
+  {key:"E",name:"재평가와 다음 단계",ratio:.12}
+];
+function splitSessions(n){
+  if(n<=3)return[{...PHASES[0],from:1,to:1},{...PHASES[2],from:2,to:Math.max(2,n-1)},{...PHASES[4],from:n,to:n}];
+  const raw=PHASES.map(p=>p.ratio*n);
+  let alloc=raw.map(r=>Math.max(1,Math.floor(r)));
+  let diff=n-alloc.reduce((a,b)=>a+b,0);
+  const order=raw.map((r,i)=>({i,frac:r-Math.floor(r)})).sort((x,y)=>y.frac-x.frac);
+  let gi=0;
+  while(diff>0){alloc[order[gi%order.length].i]++;diff--;gi++;}
+  while(diff<0){const idx=alloc.map((v,i)=>({v,i})).filter(x=>x.v>1).sort((x,y)=>y.v-x.v)[0];if(!idx)break;alloc[idx.i]--;diff++;}
+  if(n>=10){const capA=3,capE=2;
+    if(alloc[0]>capA){alloc[2]+=alloc[0]-capA;alloc[0]=capA;}
+    if(alloc[4]>capE){alloc[2]+=alloc[4]-capE;alloc[4]=capE;}}
+  let cur=1;
+  return PHASES.map((p,i)=>{const from=cur,to=cur+alloc[i]-1;cur=to+1;return{...p,from,to};});
+}
+function planFor(a){
+  const {ranked}=priorities(a);
+  const top=ranked.filter(x=>x.state!=="exclude").slice(0,3);
+  const d1=top[0]&&DOMAINS[top[0].dom],d2=top[1]&&DOMAINS[top[1].dom],d3=top[2]&&DOMAINS[top[2].dom];
+  const phases=splitSessions(a.pkg||10);
+  const flagged=Object.entries(a.tests||{}).filter(([,r])=>r&&r.items&&Object.values(r.items).some(Boolean)).map(([id])=>id);
+  const cand=[...new Set(top.flatMap(t=>DOMAINS[t.dom].retest))];
+  const retestIds=cand.filter(i=>flagged.includes(i)).concat(cand.filter(i=>!flagged.includes(i))).slice(0,4);
+  const rows=phases.map(p=>{
+    let focus=[],dir=[];
+    if(p.key==="A"){focus=["호흡·기본 인지"].concat(d1?[d1.ko]:[]);
+      dir=["호흡과 흉곽·골반 위치 인지부터 시작","주요 보상 패턴이 어떤 상황에서 나타나는지 확인","회원이 반응하는 큐잉 방식 파악"];
+      if(d1)dir.push(d1.ko+": "+d1.early);}
+    else if(p.key==="B"){focus=d1?[d1.ko]:["기초 조절"];
+      dir=(d1?[d1.early,d1.mid]:["기본 조절 능력 확보"]).concat(["양측 지지·저부하 위주로 성공 경험 확보"]);}
+    else if(p.key==="C"){focus=[d1&&d1.ko,d2&&d2.ko].filter(Boolean);
+      dir=[d1&&d1.ko+": "+d1.late,d2&&d2.ko+": "+d2.early+" → "+d2.mid,"부하와 지지면 난도를 한 단계씩 올림"].filter(Boolean);}
+    else if(p.key==="D"){focus=[d3&&d3.ko,"전신 통합"].filter(Boolean);
+      dir=[d3&&d3.ko+": "+d3.early,"확보한 조절을 서 있는 자세·복합 동작으로 연결","회원 목표 활동과 닮은 움직임으로 전환"].filter(Boolean);}
+    else{focus=["재평가"];
+      dir=["초도 평가 항목 중 아래 검사를 다시 수행","변화가 없는 항목은 접근 방식 자체를 재검토","다음 등록 구간의 우선순위 재설정"];}
+    return{...p,focus,dir,retest:(p.key==="E"||p.key==="A")?retestIds:[]};
+  });
+  return {rows,top,retestIds};
+}
+/* 의료 확인 전에는 권하지 않는 평가 — 점수와 무관하게 별도로 처리 */
+function restrictedTests(m){
+  const P=m.profile,dx=P.diagnoses||[],sp=P.special||[],out={};
+  const bone=["골다공증","골감소증","척추 압박골절 이력","가벼운 충격으로 골절된 적 있음","장기 스테로이드 사용"];
+  if(dx.some(d=>bone.includes(d))||sp.includes("골다공증 진단")){
+    out.rolldown="뼈·골절 위험 항목이 있어 척추 굴곡 평가는 기본 순서에서 빼두었습니다. 의료진 지시를 확인하고 대체 평가를 사용하세요";
+    out.curlup="복부 굴곡 부하 대신 지지된 자세에서의 호흡·복압 반응으로 대체하는 편이 안전합니다";
+  }
+  if((P.perinatal||{}).status==="임신 중"){
+    out.curlup="임신 중에는 앙와위 복부 굴곡 평가 대신 측와위·앉은 자세 관찰을 권합니다";
+    out.rolldown="임신 중에는 복압이 크게 걸리는 분절 굴곡 평가를 생략하세요";
+  }
+  if(dx.includes("요추 디스크")||dx.includes("척추관 협착증")||dx.includes("척추전방전위증"))
+    out.rolldown="척추 진단이 있습니다. 증상이 다리로 내려가면 즉시 중단하세요";
+  if((P.joint||[]).length)out.hypermob="";
+  return out;
+}
+function cautions(m,a){
+  const out=[],P=m.profile,sp=P.special||[],dx=P.diagnoses||[];
+  const has=(...k)=>k.some(x=>dx.includes(x));
+  const pe=P.perinatal||{},L=P.life||{},pn=P.pain||{};
+
+  /* 임신 · 산후 */
+  if(sp.includes("임신 중")||pe.status==="임신 중")
+    out.push("임신 중: 앙와위 장시간 유지와 복압을 높이는 동작을 피하고, 호흡·골반저·측와위 중심으로 구성");
+  if(sp.includes("산후 12주 이내")||pe.status==="산후 12주 이내")
+    out.push("산후 초기: 복압 관리와 골반저 회복을 우선하고 부하 증가는 천천히");
+  if(pe.limit)out.push("산부인과 안내: "+pe.limit);
+  if(pe.mode==="제왕절개")out.push("제왕절개 이후: 수술 부위 감각과 복벽 반응을 확인하며 복부 부하를 단계적으로 올리기");
+
+  /* 골반저 · 복벽 */
+  if((P.pelvic||[]).length)
+    out.push("골반저·복벽 증상: 증상이 나타나는 강도 아래에서 운동하고, 반복되면 골반저 전문 평가를 권유");
+  if(sp.includes("복직근 이개 확인됨")||(a&&a.tests.curlup&&a.tests.curlup.items&&a.tests.curlup.items["cu_dr"])
+     ||(a&&a.tests.abdo_resp&&a.tests.abdo_resp.items&&a.tests.abdo_resp.items["ab_dome"]))
+    out.push("복부 중앙 돌출: 돌출이 생기는 강도에서는 진행하지 않고, 호흡과 복압 조절이 유지되는 범위에서 부하 결정");
+
+  /* 뼈 */
+  if(has("골다공증","골감소증","척추 압박골절 이력","가벼운 충격으로 골절된 적 있음")||sp.includes("골다공증 진단"))
+    out.push("골절 위험: 척추 굴곡·회전 부하와 충격 동작은 의료진 확인 전까지 제외하고, 신전·지지·균형 중심으로 개별화");
+  if(has("장기 스테로이드 사용"))out.push("장기 스테로이드 사용: 골밀도와 건 조직 부담을 고려해 충격·최대 부하를 피하기");
+
+  /* 심혈관 · 대사 */
+  if(has("고혈압"))out.push("고혈압: 머리가 심장보다 낮은 자세와 강한 등척성 유지를 길게 두지 않고, 호흡을 참지 않도록 안내");
+  if(has("저혈압"))out.push("저혈압: 자세를 바꿀 때 천천히, 기립 직후 어지럼 여부 확인");
+  if(has("고지혈증(이상지질혈증)","대사증후군"))out.push("이상지질혈증·대사증후군: 유산소 요소를 꾸준히 넣되 강도는 대화가 가능한 수준부터");
+  if(has("당뇨 1형","당뇨 2형","전당뇨·내당능장애"))
+    out.push("당뇨: 공복 수업을 피하고 저혈당 증상과 발 상처 여부를 확인. 말초 감각이 둔하면 균형 과제에 지지를 두기");
+  if(has("협심증·심근경색","부정맥","심부전","판막질환","스텐트·심장수술 이력","심장재활 진행 중"))
+    out.push("심장질환: 호흡 정지를 동반한 힘주기를 피하고 강도 변화를 완만하게. 흉부 불편감이 나타나면 즉시 중단");
+  if(has("뇌졸중·일과성허혈발작"))out.push("뇌졸중 이력: 좌우 조절 차이와 균형 과제의 지지 조건을 먼저 정하기");
+  if(has("심부정맥혈전증 이력"))out.push("혈전 이력: 한쪽 다리의 새로운 통증·부종이 보이면 수업을 보류하고 의료 평가 안내");
+  if(has("말초동맥질환"))out.push("말초동맥질환: 걷기 중 종아리 통증이 생기면 쉬었다 진행하는 간헐적 구성으로");
+  if(has("만성신장질환","간질환"))out.push("신장·간질환: 피로도와 수분·전해질 상태에 따라 강도를 조절하고 무리한 연속 부하를 피하기");
+  if(has("빈혈"))out.push("빈혈: 어지럼과 숨참을 기준으로 강도를 낮추고 자세 변화를 천천히");
+  if(has("갑상선기능항진","갑상선기능저하"))out.push("갑상선질환: 피로·심박 반응이 날마다 다를 수 있어 그날 상태에 맞춰 강도를 정하기");
+  if(has("통풍"))out.push("통풍: 급성기에는 해당 관절 부하를 쉬고 회복 후 재개");
+
+  /* 호흡 */
+  if(has("천식","만성폐쇄성폐질환","기타 호흡기질환"))
+    out.push("호흡기질환: 호흡 과제의 강도와 지속 시간을 회원 반응에 맞추고, 흡입제를 지참했는지 확인");
+  if(has("수면무호흡"))out.push("수면무호흡: 피로도가 높을 수 있어 회복 반응을 다음 수업에서 확인");
+
+  /* 근골격 · 신경 */
+  if(has("요추 디스크","경추 디스크","척추관 협착증","척추전방전위증")||sp.includes("디스크 진단 이력"))
+    out.push("척추 진단: 증상이 팔·다리로 내려가는 동작은 중단하고, 반응이 좋은 방향을 먼저 사용");
+  if(has("강직성척추염"))out.push("강직성척추염: 아침 경직과 활동 후 반응을 확인하고 신전·흉곽 가동을 꾸준히");
+  if(has("골관절염","류마티스관절염"))out.push("관절염: 부은 관절은 부하를 줄이고, 통증이 24시간 이상 남지 않는 범위를 기준으로");
+  if(has("오십견"))out.push("오십견: 통증 없는 범위에서 견갑 움직임부터 접근하고 어깨 끝범위 강제 금지");
+  if(has("회전근개 질환"))out.push("회전근개: 통증 호가 나타나는 각도를 피하고 견갑 조절부터 확보");
+  if(has("인공관절 수술"))out.push("인공관절: 금지 방향(굴곡·내전·회전 한계)을 의료진 기준으로 확인한 뒤 구성");
+  if(has("관절 과가동성 진단")||sp.includes("관절 과이완성")||(P.joint||[]).length)
+    out.push("과가동성: 가동범위를 더 늘리기보다 범위 안에서의 조절과 종말 부위 안정성에 집중");
+  if(has("말초신경병증(당뇨성 포함)","좌골신경통")||(P.neuro||[]).length)
+    out.push("신경 증상: 저림이 재현되는 자세는 피하고, 새로 생긴 힘 빠짐은 의료 확인을 먼저 권하기");
+  if(has("현훈·전정기능 이상"))out.push("어지럼 이력: 머리 위치가 빠르게 바뀌는 동작과 눈 감기 과제를 천천히 도입");
+
+  /* 낙상 */
+  if((P.fall||[]).length)
+    out.push("낙상 위험: 기구 승하차와 지지물 위치를 먼저 정하고, 균형 과제는 지지 조건을 단계적으로 줄이기");
+
+  /* 약 */
+  if((P.medEffects||[]).length)
+    out.push("복용약 반응("+P.medEffects.join(", ")+"): 자세 전환 속도와 수업 시작 강도를 낮추고 반응을 확인");
+  if((P.medTags||[]).includes("항응고제·항혈소판제"))out.push("항응고제: 강한 압박·도수 자극과 충격 동작을 피하기");
+  if((P.meds||{}).note)out.push("약 관련 안내: "+P.meds.note);
+
+  /* 수술 · 재활 */
+  (P.surgeries||[]).forEach(s=>{
+    if(s.limit&&s.limit!=="제한 없음")out.push([s.name,s.side].filter(Boolean).join(" ")+": "+s.limit);
+    if(s.note)out.push([s.name,"허용·금지"].filter(Boolean).join(" ")+" — "+s.note);
+  });
+
+  /* 운동 중 증상 */
+  if((P.exsym||[]).length)
+    out.push("운동 중 증상 보고("+P.exsym.join(", ")+"): 증상이 재현되면 중단하고 의료 확인을 권하기");
+
+  /* 통증 · 회복 */
+  const mp=mainPain(P),PD=P.painDetail||{};
+  const nrs=parseInt(mp.nrs||pn.nrsNow||P.nrs,10);
+  if(!isNaN(nrs)&&nrs>=5)out.push((mp.site?mp.site+" ":"")+"불편감이 높은 편입니다. 통증이 재현되지 않는 범위에서 시작하고 수업 중 반응을 기록하세요");
+  if((P.painSites||[]).length>=3)
+    out.push("불편 부위가 여러 곳입니다. 주 호소 부위 한 곳을 기준으로 수업을 구성하고 나머지는 반응만 관찰하세요");
+  Object.keys(PD).forEach(s=>{const d=PD[s]||{};
+    if(d.trend==="최근 나빠지는 중")out.push(s+": 최근 악화 중 — 부하를 올리기 전에 증상 변화를 먼저 확인");
+    if(d.aggravate)out.push(s+" 심해지는 상황: "+d.aggravate);
+    if(d.relieve)out.push(s+" 편해지는 상황: "+d.relieve+" — 이 방향을 수업 초반에 활용");});
+  if(pn.trend==="최근 나빠지는 중")out.push("최근 악화 중: 부하를 올리기 전에 증상 변화를 먼저 확인하세요");
+  if(L.recovery==="48시간 이상 불편함")out.push("지난 수업 후 회복이 느렸습니다. 전체 볼륨을 줄이고 한 가지 과제만 진행하세요");
+  if(L.fear==="많이 있음")out.push("운동에 대한 두려움이 큽니다. 성공하는 범위에서 시작하고 무엇을 왜 하는지 설명하세요");
+  if(parseInt(P.sensitivity,10)>=4)out.push("예민함 정도가 높습니다. 자극 강도와 새 동작 수를 줄이고 회복 반응을 다음 수업에서 확인하세요");
+  return out;
+}
+function cueGuide(m,a){
+  const c=a.cues||{},out=[];
+  if(c.tactile==="잘 반응")out.push("촉각 큐잉에 잘 반응합니다. 새 동작은 손으로 위치를 짚어주며 시작하세요");
+  if(c.verbal==="반응 낮음")out.push("언어 설명보다 시범이나 촉각 큐를 먼저 쓰세요");
+  if(c.visual==="잘 반응")out.push("거울이나 시범을 적극적으로 활용하세요");
+  if(c.lowload==="낮음"&&c.highload!=="낮음")out.push("저부하에서는 인지가 어렵습니다. 스프링 저항이나 밴드로 감각 입력을 준 뒤 부하를 낮추는 순서로 진행하세요");
+  if(c.eyesclosed==="뚜렷이 저하")out.push("시각에 많이 의존합니다. 눈 감기·불안정 지지면 과제를 단계적으로 넣어보세요");
+  if(c.cuecount==="한 번에 하나")out.push("지시는 한 번에 하나씩. 동작당 핵심 큐 하나만 정해두세요");
+  if(c.learning==="느림"||c.focus==="짧은 편")out.push("동작 수를 줄이고 반복 횟수를 늘리는 구성이 효율적입니다");
+  if(c.sidediff&&c.sidediff!=="없음")out.push(`${c.sidediff.replace("이 둔함","")} 쪽 감각 인지가 낮습니다. 그쪽을 먼저 수행하고 더 많은 큐를 주세요`);
+  if(c.paincaution==="높음"||parseInt(m.profile.sensitivity,10)>=4)out.push("통증·자극에 대한 경계가 높습니다. 성공하는 범위에서 시작하고 무엇을 왜 하는지 설명하세요");
+  return out;
+}
+
+
+/* ============================================================
+   강사용 앱
+   ============================================================ */
+let S={screen:"gate",gate:"login",mode:"coach",memberId:null,step:0,draft:null,viewAssessId:null,
+  editProfile:false,q:"",filter:"all",addAdmin:false,grantFor:null,intakeSec:"basic",since:[]};
+const view=()=>document.getElementById("view");
+const dockEl=()=>document.getElementById("dock");
+const myMembers=()=>isAdmin()?members():members().filter(m=>m.ownerId===(SESSION&&SESSION.id));
+const member=()=>memberById(S.memberId);
+const ROOTS=["members","classes","news","settings","staff"];
+let lastKey="";
+
+function go(patch,root){
+  if(root)Nav.stack=[];else Nav.push({screen:S.screen,memberId:S.memberId,step:S.step,viewAssessId:S.viewAssessId});
+  Object.assign(S,patch);render();
+}
+function goBack(){
+  const p=Nav.pop();
+  if(p){Object.assign(S,p);render();}
+  else if(S.screen!=="members"&&SESSION){S.screen="members";render();}
+}
+function chip(k,label,on,cls){return `<button class="chip ${cls||""}" data-chip="${k}" aria-pressed="${on?"true":"false"}">${esc(label)}</button>`;}
+function prow(store,it,prefix){
+  const key=id=>(prefix?prefix+"|":"")+id,cls=it.caution?"caution":"";
+  const btn=(id,label)=>`<button class="${cls}" data-chip="${key(id)}" aria-pressed="${store[id]?"true":"false"}">${label}</button>`;
+  return `<div class="prow"><span class="pn">${esc(it.t)}</span><span class="lr">${
+    it.s?btn(it.id+":좌","좌")+btn(it.id+":우","우")
+       :`<button class="one ${cls}" data-chip="${key(it.id)}" aria-pressed="${store[it.id]?"true":"false"}">해당</button>`}</span></div>`;
+}
+function render(){
+  if(!SESSION)S.screen="gate";
+  const y=window.scrollY||0,key=S.screen+"|"+S.memberId+"|"+S.step+"|"+S.viewAssessId;
+  view().innerHTML=(VIEWS[S.screen]||VIEWS.members)();
+  chrome();dock();tabbar();
+  if(key===lastKey)window.scrollTo(0,y);else window.scrollTo(0,0);
+  lastKey=key;
+}
+function syncBadge(){
+  const el=document.getElementById("sync");if(!el)return;
+  el.className="syncdot "+(Sync.state.error?"err":(Sync.on()?"on":""));
+  el.innerHTML=`<i></i>${Sync.on()?(Sync.state.error?"동기화 오류":(Sync.state.last?"동기화 "+Sync.state.last:"서버 연결됨")):"이 기기에만 저장"}`;
+}
+function chrome(){
+  const back=document.getElementById("back");
+  back.innerHTML=(SESSION&&(Nav.depth>0||!ROOTS.includes(S.screen)))
+    ?`<button class="backbtn" data-act="back" aria-label="뒤로">‹</button>`:"";
+  document.getElementById("cname").innerHTML=SESSION
+    ?esc(centerName())+(isAdmin()?' <span>어드민</span>':"") :"MoveMap";
+  const m=member(),T={member:"회원 정보",assessments:"평가 이력",sessions:"수업 기록",notes:"특이사항",
+    report:"리포트",addMember:"회원 추가",intake:"문진",staff:"강사 관리",roles:"권한 그룹",accounts:"관리자 계정",
+    rooms:"룸 설정",center:"센터 정보"};
+  document.getElementById("crumbs").textContent=
+    ["member","intake","assessments","sessions","notes","report","addMember"].includes(S.screen)
+      ?((m?m.name+" · ":"")+T[S.screen])
+      :(S.screen==="assess"&&S.draft?`${m?m.name+" · ":""}${S.draft.type}`:(T[S.screen]||""));
+  const mine=(SESSION&&(SESSION.centers||[]))||[];
+  const cs=mine.length>1
+    ?`<select class="centerpick" data-centerpick="1">${mine.map(id=>{const c=centerById(id);
+        return c?`<option value="${id}" ${id===CENTER_ID?"selected":""}>${esc(c.name)}</option>`:"";}).join("")}</select>`:"";
+  document.getElementById("who").innerHTML=SESSION
+    ?`${cs}<span class="who">${esc(SESSION.name)}${isAdmin()?(SESSION.role==="owner"?" · 대표":" · "+esc(roleLabel(SESSION.roleId))):" 강사"}</span><span id="sync" class="syncdot"></span>`:"";
+  document.getElementById("topActions").innerHTML="";
+  syncBadge();
+}
+function tabbar(){
+  const el=document.getElementById("tabs");
+  if(!SESSION||S.screen==="assess"||S.screen==="gate"){el.innerHTML="";document.body.classList.remove("hastabs");return;}
+  document.body.classList.add("hastabs");
+  const cur=k=>S.screen===k||(k==="settings"&&["roles","accounts","rooms","center"].includes(S.screen));
+  const t=(k,ic,label)=>`<button data-tab="${k}" aria-current="${cur(k)}"><span class="ic">${ic}</span>${label}</button>`;
+  el.innerHTML=`<nav class="tabbar">
+    ${t("members","◍","회원")}${t("classes","▤","수업")}
+    <button class="addbtn" data-tab="addMember" aria-label="회원 추가"><span class="ic">+</span></button>
+    ${isAdmin()?t("staff","◎","강사"):t("news","✦","뉴스")}${t("settings","⚙","설정")}</nav>`;
+}
+
+/* ---------- 로그인 ---------- */
+function gateView(){
+  const mode=S.mode||"coach",admin=mode==="admin";
+  const seg=`<div class="loginmode">
+    <button data-mode="admin" aria-pressed="${admin}">어드민<em>센터 · 관리자</em></button>
+    <button data-mode="coach" aria-pressed="${!admin}">강사<em>내 회원 · 수업</em></button></div>`;
+  const server=`<details class="mt24"><summary class="hint" style="cursor:pointer">서버 연결 설정</summary>
+      <p class="hint mt16">센터에서 받은 정보를 넣으면, 다른 기기에서 만든 계정으로도 로그인할 수 있습니다.</p>
+      <div class="fields">
+        <div class="wide"><label class="f" for="sy_url">프로젝트 URL</label><input id="sy_url" type="text" data-sync="url" value="${esc((DB.sync||{}).url||"")}" placeholder="https://xxxx.supabase.co"></div>
+        <div class="wide"><label class="f" for="sy_key">anon key</label><input id="sy_key" type="text" data-sync="key" value="${esc((DB.sync||{}).key||"")}"></div>
+        <div><label class="f" for="sy_s">저장 공간 이름</label><input id="sy_s" type="text" data-sync="space" value="${esc((DB.sync||{}).space||"movemap")}"></div>
+      </div>
+      <div class="mt16 srow"><button class="btn" data-act="pullnow">서버에서 불러오기</button>
+        <button class="btn" data-act="import">백업 파일 가져오기</button></div></details>`;
+
+  if(S.gate==="signup"&&admin)return `<div class="gate"><div class="panel">
+    <h1>센터 등록</h1><p class="sub">센터와 대표관리자 계정을 함께 만듭니다</p>
+    <div class="fields">
+      <div><label class="f" for="c_name">센터 이름</label><input id="c_name" type="text" placeholder="예: 더블필라테스"></div>
+      <div><label class="f" for="c_en">영문 표기</label><input id="c_en" type="text" placeholder="예: DOUBLE"></div>
+      <div class="wide"><label class="f" for="c_code">센터 코드</label><input id="c_code" type="text" autocapitalize="off" placeholder="강사가 소속 센터를 추가할 때 쓰는 코드"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="fields">
+      <div><label class="f" for="a_name">대표관리자 이름</label><input id="a_name" type="text"></div>
+      <div><label class="f" for="a_tel">전화번호</label><input id="a_tel" type="tel" inputmode="numeric" data-mask="tel" placeholder="010-0000-0000"></div>
+      ${dateField("a_dob","","생년월일",{age:1})}
+      <div><label class="f" for="a_mail">이메일</label><input id="a_mail" type="email" placeholder="name@example.com"></div>
+      <div><label class="f" for="a_id">아이디</label><input id="a_id" type="text" autocapitalize="off" placeholder="영문·숫자 3자 이상"></div>
+      <div><label class="f" for="a_pw">비밀번호</label><input id="a_pw" type="password" placeholder="4자 이상"></div>
+      <div><label class="f" for="a_pw2">비밀번호 확인</label><input id="a_pw2" type="password"></div>
+    </div>
+    <div class="mt24 srow"><button class="btn primary" data-act="signup">센터 만들기</button>
+      <button class="btn ghost" data-act="toLogin">로그인으로</button></div>
+    <p class="hint mt16">이미 센터가 있고 직원으로 합류하는 경우에는, 대표관리자가 만들어 준 아이디로 바로 로그인하세요.</p></div></div>`;
+
+  if(S.gate==="signup")return `<div class="gate"><div class="panel">
+    <h1>강사 회원가입</h1><p class="sub">센터에 등록된 전화번호로만 가입할 수 있습니다</p>
+    <div class="fields">
+      <div><label class="f" for="s_name">이름</label><input id="s_name" type="text"></div>
+      <div><label class="f" for="s_tel">전화번호</label><input id="s_tel" type="tel" inputmode="numeric" data-mask="tel" placeholder="010-0000-0000"></div>
+      ${dateField("s_dob","","생년월일",{age:1})}
+      <div><label class="f" for="s_mail">이메일</label><input id="s_mail" type="email" placeholder="name@example.com"></div>
+      <div><label class="f" for="s_id">아이디</label><input id="s_id" type="text" autocapitalize="off" placeholder="영문·숫자 3자 이상"></div>
+      <div><label class="f" for="s_pw">비밀번호</label><input id="s_pw" type="password" placeholder="4자 이상"></div>
+      <div><label class="f" for="s_pw2">비밀번호 확인</label><input id="s_pw2" type="password"></div>
+    </div>
+    <div class="mt24 srow"><button class="btn primary" data-act="signup">가입하기</button>
+      <button class="btn ghost" data-act="toLogin">로그인으로</button></div></div></div>`;
+
+  return `<div class="gate"><div class="panel">
+    <h1>MoveMap</h1><p class="sub">어떤 계정으로 들어갈지 먼저 골라주세요</p>
+    ${seg}
+    <p class="modehint">${admin?"센터 회원·강사·권한을 관리합니다":"내가 맡은 회원의 평가와 수업을 기록합니다"}</p>
+    <div><label class="f" for="l_id">아이디</label><input id="l_id" type="text" autocapitalize="off" autocomplete="username"></div>
+    <div class="mt16"><label class="f" for="l_pw">비밀번호</label><input id="l_pw" type="password" autocomplete="current-password"></div>
+    <div class="mt24"><button class="btn primary" data-act="login" style="width:100%;height:42px">로그인</button></div>
+    <div class="mt16 hint">${admin?"센터가 아직 없나요?":"계정이 없으신가요?"}
+      <button class="btn sm ghost" data-act="toSignup">${admin?"센터 등록":"회원가입"}</button></div>
+    ${server}
+  </div></div>`;
+}
+
+/* ---------- 회원 목록 ---------- */
+function membersView(){
+  const q=S.q.trim();
+  const list=myMembers().filter(m=>!q||m.name.includes(q)||digits(m.phone).includes(digits(q)));
+  const rows=list.map(m=>{
+    const last=live(m.assessments).slice(-1)[0];
+    const p=last?priorities(last).ranked.filter(x=>x.state!=="exclude")[0]:null;
+    return `<li><button data-open="${m.id}">
+      <span><span class="mname">${esc(m.name)}</span>
+      <span class="mmeta">${esc([m.sex,dobLine(m.dob),telFmt(m.phone)].filter(Boolean).join(" · ")||"정보 없음")}</span></span>
+      <span class="mright">${last?`${esc(fmt(last.date))} · ${p?esc(DOMAINS[p.dom].ko):"우선순위 없음"}`:"평가 전"}
+      <br><span class="hint">평가 ${live(m.assessments).length} · 수업 ${live(m.sessions).length}</span></span></button></li>`;}).join("");
+  return `<div class="panel">
+    <div class="srow" style="justify-content:space-between">
+      <div><h2>내 회원 ${myMembers().length}명</h2>
+        <p class="sub" style="margin-bottom:0">${esc(centerName())} · ${esc(SESSION.name)} 강사</p></div>
+      <input type="text" id="q" data-q="1" value="${esc(S.q)}" placeholder="이름·전화 검색" style="width:180px"></div>
+  </div>
+  <div class="panel flush">${list.length?`<ul class="memberlist">${rows}</ul>`
+    :`<div class="empty"><strong>${q?"검색 결과가 없습니다":"아직 등록된 회원이 없습니다"}</strong>${q?"":"아래 + 버튼으로 회원을 추가하세요."}</div>`}</div>`;
+}
+function addMemberView(){
+  const st=staffOf();
+  return `<div class="panel"><h2>회원 추가</h2>
+    <p class="sub">${esc(centerName())}에 등록됩니다${isAdmin()?"":` · 담당은 ${esc(SESSION.name)} 강사입니다`}</p>
+    <div class="fields">
+      <div><label class="f" for="nm">이름</label><input id="nm" type="text" placeholder="회원 이름"></div>
+      ${dateField("ndob","","생년월일",{age:1})}
+      <div><label class="f" for="ntel">전화번호</label><input id="ntel" type="tel" inputmode="numeric" data-mask="tel" placeholder="010-0000-0000"></div>
+      <div><label class="f" for="nsex">성별</label><select id="nsex"><option value="">선택 안 함</option><option>여</option><option>남</option></select></div>
+      ${isAdmin()?`<div><label class="f" for="nowner">담당 강사</label><select id="nowner"><option value="">미배정</option>
+        ${st.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>`:""}
+    </div>
+    <div class="mt24 srow"><button class="btn primary" data-act="addMember">추가하기</button>
+      <button class="btn ghost" data-act="back">취소</button></div></div>`;
+}
+/* ---------- 수업 탭 ---------- */
+function classesView(){
+  const all=[];
+  myMembers().forEach(m=>live(m.sessions).forEach(s=>all.push({m,s})));
+  all.sort((a,b)=>(b.s.date+(b.s.time||"")).localeCompare(a.s.date+(a.s.time||"")));
+  const rows=all.slice(0,60).map(({m,s})=>`<tr>
+    <td class="num">${esc(fmt(s.date))}<br><span class="hint">${esc(s.time||"")}</span></td>
+    <td><button class="rowbtn" data-opensessions="${m.id}">${esc(m.name)}</button><br><span class="hint">${s.no}회차</span></td>
+    <td>${esc(s.room||"–")}</td>
+    <td>${esc(s.content||"")}${s.homework?`<br><span class="hint">숙제: ${esc(s.homework)}</span>`:""}</td></tr>`).join("");
+  const t=today();
+  const todays=all.filter(x=>x.s.date===t).length;
+  return `<div class="panel"><h2>수업 기록</h2>
+    <p class="sub">${isAdmin()?esc(centerName())+" 전체 · ":""}오늘 ${todays}건 · 전체 ${all.length}건. 회원 이름을 누르면 그 회원의 기록으로 이동합니다</p></div>
+  <div class="panel flush">${all.length?`<div class="tablewrap"><table class="grid">
+    <thead><tr><th>일시</th><th>회원</th><th>룸</th><th>내용</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    :`<div class="empty"><strong>기록된 수업이 없습니다</strong>회원 화면에서 수업 기록을 추가하세요.</div>`}</div>`;
+}
+/* ---------- 뉴스 탭 ---------- */
+const NEWS=[
+  {g:"운동·재활 연구",items:[
+    {t:"PubMed — 필라테스 연구 최신순",u:"https://pubmed.ncbi.nlm.nih.gov/?term=pilates&sort=date",s:"pubmed.ncbi.nlm.nih.gov"},
+    {t:"PubMed — 요통 운동치료",u:"https://pubmed.ncbi.nlm.nih.gov/?term=low+back+pain+exercise&sort=date",s:"pubmed.ncbi.nlm.nih.gov"},
+    {t:"PubMed — 산후 코어 재활",u:"https://pubmed.ncbi.nlm.nih.gov/?term=postpartum+core+rehabilitation&sort=date",s:"pubmed.ncbi.nlm.nih.gov"}]},
+  {g:"학회·기관",items:[
+    {t:"대한재활의학회",u:"https://www.karm.or.kr",s:"karm.or.kr"},
+    {t:"대한스포츠의학회",u:"https://www.sportsmed.or.kr",s:"sportsmed.or.kr"},
+    {t:"질병관리청 국가건강정보포털",u:"https://health.kdca.go.kr",s:"health.kdca.go.kr"},
+    {t:"ACSM — 운동 가이드라인",u:"https://www.acsm.org",s:"acsm.org"}]},
+  {g:"건강 뉴스",items:[
+    {t:"연합뉴스 건강",u:"https://www.yna.co.kr/health/all",s:"yna.co.kr"},
+    {t:"코메디닷컴",u:"https://kormedi.com",s:"kormedi.com"}]}
+];
+function newsView(){
+  return `<div class="panel"><h2>뉴스와 자료</h2>
+    <p class="sub">수업에 참고할 만한 연구·건강 정보를 모아두었습니다. 누르면 새 창에서 열립니다</p></div>
+  ${NEWS.map(g=>`<div class="panel"><h3>${g.g}</h3>
+    ${g.items.map(i=>`<a class="newsitem" href="${i.u}" target="_blank" rel="noopener">
+      <strong>${esc(i.t)}</strong><span>${esc(i.s)}</span></a>`).join("")}</div>`).join("")}
+  <div class="panel"><p class="hint" style="margin:0">연구 내용을 회원에게 전달할 때는 진단이나 치료 효과를 단정하지 않도록 주의해 주세요.</p></div>`;
+}
+/* ---------- 설정 탭 ---------- */
+function settingsView(){
+  const c=DB.sync||{},mine=SESSION.centers||[];
+  return `<div class="panel"><h2>설정</h2>
+    <ul class="setlist">
+      <li><span>현재 센터</span><span class="sv">${esc(centerName())}</span></li>
+      ${mine.length>1?`<li><span>센터 변경</span><span class="sv">
+        <select data-centerpick="1">${mine.map(id=>{const x=centerById(id);
+          return x?`<option value="${id}" ${id===CENTER_ID?"selected":""}>${esc(x.name)}</option>`:"";}).join("")}</select></span></li>`:""}
+      <li><span>소속 센터</span><span class="sv">${mine.map(id=>{const x=centerById(id);return x?esc(x.name):"";}).filter(Boolean).join(", ")||"없음"}</span></li>
+    </ul>
+    <div class="mt16 srow"><button class="btn sm" data-act="joinCenter">다른 센터 추가</button>
+      <span class="hint">센터 코드가 필요합니다</span></div></div>
+  <div class="panel"><h3>내 정보</h3>
+    <div class="fields">
+      <div><label class="f" for="me_name">이름</label><input id="me_name" type="text" data-me="name" value="${esc(SESSION.name||"")}"></div>
+      <div><label class="f" for="me_tel">전화번호</label><input id="me_tel" type="tel" inputmode="numeric" data-mask="tel" data-me="phone" value="${esc(telFmt(SESSION.phone))}"></div>
+      ${dateField("me_dob",SESSION.dob,"생년월일",{age:1,bind:"dob"})}
+      <div><label class="f" for="me_mail">이메일</label><input id="me_mail" type="email" data-me="email" value="${esc(SESSION.email||"")}"></div>
+      <div><label class="f" for="me_id">아이디</label><input id="me_id" type="text" class="readonly" value="${esc(SESSION.userid||"")}" readonly></div>
+      <div><label class="f" for="me_pw">새 비밀번호</label><input id="me_pw" type="password" placeholder="변경할 때만 입력"></div>
+    </div>
+    <div class="mt16"><button class="btn primary" data-act="saveMe">내 정보 저장</button></div></div>
+  <div class="panel"><h3>서버 연결</h3>
+    <div class="fields">
+      <div class="wide"><label class="f" for="sy_url">프로젝트 URL</label><input id="sy_url" type="text" data-sync="url" value="${esc(c.url||"")}"></div>
+      <div class="wide"><label class="f" for="sy_key">anon key</label><input id="sy_key" type="text" data-sync="key" value="${esc(c.key||"")}"></div>
+      <div><label class="f" for="sy_s">저장 공간 이름</label><input id="sy_s" type="text" data-sync="space" value="${esc(c.space||"movemap")}"></div>
+    </div>
+    <div class="mt16 srow"><button class="btn" data-act="sync">지금 동기화</button>
+      <button class="btn" data-act="export">백업 내보내기</button><button class="btn" data-act="import">가져오기</button></div>
+    <p class="hint mt16">${Sync.on()?(Sync.state.error?"오류: "+esc(Sync.state.error):(Sync.state.last?"마지막 동기화 "+Sync.state.last:"연결 준비됨")):"연결 안 됨 · 이 기기에만 저장됩니다"}</p></div>
+  <div class="panel"><button class="btn danger" data-act="logout">로그아웃</button></div>`;
+}
+
+/* ---------- 회원 상세 ---------- */
+/* ---------- 문진 ---------- */
+const INTAKE_SECS=[
+  ["basic","기본 · 목적"],["pain","통증"],["dx","진단 · 병력"],["surgery","수술 · 재활"],
+  ["neuro","신경 · 운동 중 증상"],["women","임신 · 골반저"],["balance","균형 · 관절"],
+  ["meds","복용약"],["life","생활 · 회복"],["safety","안전 신호"]
+];
+function secCount(P,k){
+  const n=a=>(a||[]).length;
+  if(k==="basic")return n(P.goals)+n(P.habits)+n(P.special)+(P.job?1:0)+(P.experience?1:0);
+  if(k==="pain")return n(P.painSites)+Object.values(P.pain||{}).filter(Boolean).length
+    +Object.values(P.painDetail||{}).reduce((s,d)=>s+Object.values(d||{}).filter(Boolean).length,0);
+  if(k==="dx")return n(P.diagnoses)+n(P.discomforts)+(P.diagnosesEtc?1:0);
+  if(k==="surgery")return n(P.surgeries)+(P.injury?1:0);
+  if(k==="neuro")return n(P.neuro)+n(P.exsym);
+  if(k==="women")return n(P.pelvic)+Object.values(P.perinatal||{}).filter(Boolean).length;
+  if(k==="balance")return n(P.fall)+n(P.joint);
+  if(k==="meds")return n(P.medTags)+n(P.medEffects)+Object.values(P.meds||{}).filter(Boolean).length;
+  if(k==="life")return Object.values(P.life||{}).filter(Boolean).length;
+  if(k==="safety")return n(P.urgent)+watchOf({profile:P}).length;
+  return 0;
+}
+const fLabel=(t,note)=>`<label class="f">${t}${note?` <span class="hint">${note}</span>`:""}</label>`;
+function fSel(path,label,opts,val,wide){
+  return `<div${wide?' class="wide"':''}>${fLabel(label)}
+    <select data-pobj="${path}"><option value="">선택</option>
+    ${opts.map(o=>`<option ${val===o?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;
+}
+function fTxt(path,label,val,ph,wide,note){
+  return `<div${wide?' class="wide"':''}>${fLabel(label,note)}
+    <input type="text" data-pobj="${path}" value="${esc(val||"")}" placeholder="${esc(ph||"")}"></div>`;
+}
+function fArea(path,label,val,ph,note){
+  return `<div class="wide">${fLabel(label,note)}
+    <textarea data-pobj="${path}" placeholder="${esc(ph||"")}">${esc(val||"")}</textarea></div>`;
+}
+function fNum(path,label,val,note){
+  return `<div>${fLabel(label,note)}
+    <input type="number" min="0" max="10" data-pobj="${path}" value="${esc(val||"")}"></div>`;
+}
+function chipRow(prefix,list,sel,cls){
+  return `<div class="chips">${list.map(x=>chip(prefix+":"+x,x,(sel||[]).includes(x),cls)).join("")}</div>`;
+}
+function condBlock(name,c){
+  c=c||{};
+  return `<div class="condbox"><div class="ch"><strong>${esc(name)}</strong>
+      <span class="hint">선택했을 때만 기록합니다</span></div>
+    <div class="fields">
+      <div>${fLabel("정보 출처")}<select data-cond="${esc(name)}|source"><option value="">선택</option>
+        ${DX_SOURCE.map(o=>`<option ${c.source===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("현재 증상")}<select data-cond="${esc(name)}|status"><option value="">선택</option>
+        ${DX_STATUS.map(o=>`<option ${c.status===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("치료 · 재활")}<select data-cond="${esc(name)}|care"><option value="">선택</option>
+        ${DX_CARE.map(o=>`<option ${c.care===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("확인 날짜")}<input type="text" inputmode="numeric" maxlength="10" data-mask="date"
+        data-cond="${esc(name)}|checkedAt" placeholder="0000-00-00" value="${esc(c.checkedAt||"")}"></div>
+      <div class="wide">${fLabel("증상 부위 · 좌우 · 나타나는 조건")}
+        <input type="text" data-cond="${esc(name)}|site" value="${esc(c.site||"")}"
+          placeholder="예: 우측 하지 저림, 오래 서 있을 때"></div>
+      <div class="wide">${fLabel("의료진이 안내한 운동 제한")}
+        <input type="text" data-cond="${esc(name)}|limit" value="${esc(c.limit||"")}"
+          placeholder="예: 3개월간 척추 굴곡 금지, 체중부하는 절반까지"></div>
+    </div></div>`;
+}
+function surgeryList(P){
+  const rows=(P.surgeries||[]).map((s,i)=>`<div class="condbox">
+    <div class="ch"><strong>${esc(s.name||"수술 "+(i+1))}</strong>
+      <button class="rowdel" data-delsurg="${i}">삭제</button></div>
+    <div class="fields">
+      <div>${fLabel("수술 · 시술명")}<input type="text" data-surg="${i}|name" value="${esc(s.name||"")}" placeholder="예: 반월판 봉합술"></div>
+      <div>${fLabel("부위")}<input type="text" data-surg="${i}|site" value="${esc(s.site||"")}" placeholder="예: 무릎"></div>
+      <div>${fLabel("좌우")}<select data-surg="${i}|side"><option value="">선택</option>
+        ${["좌","우","양측","해당 없음"].map(o=>`<option ${s.side===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("수술 날짜")}<input type="text" inputmode="numeric" maxlength="10" data-mask="date"
+        data-surg="${i}|date" placeholder="0000-00-00" value="${esc(s.date||"")}"></div>
+      <div>${fLabel("현재 재활 단계")}<select data-surg="${i}|stage"><option value="">선택</option>
+        ${REHAB_STAGE.map(o=>`<option ${s.stage===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("체중부하 · 가동범위")}<select data-surg="${i}|limit"><option value="">선택</option>
+        ${LOAD_LIMIT.map(o=>`<option ${s.limit===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("다음 진료일")}<input type="text" inputmode="numeric" maxlength="10" data-mask="date"
+        data-surg="${i}|next" placeholder="0000-00-00" value="${esc(s.next||"")}"></div>
+      <div class="wide">${fLabel("의료진이 허용한 동작 · 금지 동작")}
+        <input type="text" data-surg="${i}|note" value="${esc(s.note||"")}" placeholder="예: 굴곡 90도까지 허용, 회전 금지"></div>
+    </div></div>`).join("");
+  return rows+`<div class="mt16"><button class="btn" data-act="addSurgery">수술 · 시술 추가</button></div>`;
+}
+function painDetailCard(P,site){
+  const d=(P.painDetail||{})[site]||{};
+  return `<div class="condbox ${d.main?"main":""}">
+    <div class="ch"><strong>${esc(site)}</strong>
+      <span class="srow">
+        <button class="chip sm" data-painmain="${esc(site)}" aria-pressed="${!!d.main}">주 호소 부위</button>
+        <button class="rowdel" data-pain="${esc(site)}">부위 해제</button></span></div>
+    <div class="rowline" style="padding-top:0">
+      <span class="lbl">어느 쪽</span>
+      <span class="seg">${["좌","우","양측","중앙"].map(o=>`<button data-painside="${esc(site)}|${o}"
+        aria-pressed="${d.side===o}">${o}</button>`).join("")}</span></div>
+    <div class="fields mt16">
+      <div>${fLabel("현재 강도 (0~10)")}<input type="number" min="0" max="10"
+        data-pdet="${esc(site)}|nrs" value="${esc(d.nrs||"")}"></div>
+      <div>${fLabel("가장 심할 때 (0~10)")}<input type="number" min="0" max="10"
+        data-pdet="${esc(site)}|nrsWorst" value="${esc(d.nrsWorst||"")}"></div>
+      <div>${fLabel("시작 시점")}<select data-pdet="${esc(site)}|onset"><option value="">선택</option>
+        ${PAIN_ONSET.map(o=>`<option ${d.onset===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div>${fLabel("최근 변화")}<select data-pdet="${esc(site)}|trend"><option value="">선택</option>
+        ${PAIN_TREND.map(o=>`<option ${d.trend===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div class="wide">${fLabel("어떤 느낌인지","회원이 말한 표현 그대로")}
+        <textarea data-pdet="${esc(site)}|quality" placeholder="예: 오래 앉아 있다 일어날 때 찌릿하고, 아침에는 뻐근함">${esc(d.quality||"")}</textarea></div>
+      <div class="wide">${fLabel("심해지는 동작 · 상황")}
+        <input type="text" data-pdet="${esc(site)}|aggravate" value="${esc(d.aggravate||"")}"
+          placeholder="예: 앞으로 숙일 때, 오래 서 있을 때"></div>
+      <div class="wide">${fLabel("편해지는 동작 · 상황")}
+        <input type="text" data-pdet="${esc(site)}|relieve" value="${esc(d.relieve||"")}"
+          placeholder="예: 누워 무릎 세우면 편함, 걸으면 나아짐"></div>
+    </div></div>`;
+}
+function painSection(P){
+  const sel=(P.painSites||[]).slice(),det=P.painDetail||{};
+  const ordered=sel.slice().sort((a,b)=>((det[b]||{}).main?1:0)-((det[a]||{}).main?1:0));
+  const pn=P.pain||{};
+  return `<div class="panel"><h3>불편한 부위</h3>
+    <p class="sub">여러 곳이어도 괜찮습니다. 선택한 부위마다 아래에 따로 적는 칸이 열립니다</p>
+    <div class="chips">${PAIN_SITES.map(s=>`<button class="chip" data-pain="${esc(s)}"
+      aria-pressed="${sel.includes(s)}">${s}</button>`).join("")}</div>
+    <div class="fields mt16"><div class="wide">${fLabel("그 밖의 부위")}
+      <input type="text" data-prof="painEtc" value="${esc(P.painEtc||"")}" placeholder="목록에 없는 부위"></div></div></div>
+  ${sel.length?`<div class="panel"><h3>부위별 기록</h3>
+    <p class="sub">부위가 여러 곳이면 무엇부터 다룰지가 중요합니다. 가장 신경 쓰이는 곳을 '주 호소 부위'로 표시해 주세요</p>
+    ${ordered.map(s=>painDetailCard(P,s)).join("")}</div>`
+    :`<div class="panel"><div class="mutedbox">부위를 선택하면 그 부위의 느낌·강도·악화 상황을 적을 수 있습니다.</div></div>`}
+  <div class="panel"><h3>통증 전반</h3>
+    <p class="sub">부위와 상관없이 회원 전체에 해당하는 내용입니다</p>
+    <div class="fields">
+      ${fSel("pain|trauma","외상 여부",PAIN_TRAUMA,pn.trauma)}
+      ${fSel("pain|sleep","수면 영향",IMPACT,pn.sleep)}
+      ${fSel("pain|daily","일상 영향",IMPACT,pn.daily)}
+      ${fArea("pain|note","그 밖에 기억할 내용",pn.note,"예: 통증보다 재발이 더 걱정이라고 말함")}
+      ${pn.quality||pn.aggravate||pn.relieve?`<div class="wide"><div class="calloutbox">
+        <h4>이전에 적어둔 통증 메모</h4>
+        ${pn.quality?`느낌: ${esc(pn.quality)}<br>`:""}${pn.aggravate?`악화: ${esc(pn.aggravate)}<br>`:""}
+        ${pn.relieve?`완화: ${esc(pn.relieve)}`:""}
+        <p class="hint" style="margin:6px 0 0">부위별 기록으로 옮겨 적은 뒤 지우셔도 됩니다.</p>
+        <div class="mt16"><button class="btn sm" data-act="clearOldPain">이 메모 지우기</button></div></div></div>`:""}
+    </div></div>`;
+}
+function intakeView(){
+  const m=member();if(!m)return "";
+  const P=m.profile,sec=S.intakeSec||"basic";
+  const nav=`<div class="secnav">${INTAKE_SECS.map(([k,t])=>{const n=secCount(P,k);
+    return `<button data-sec="${k}" aria-current="${sec===k}">${t}${n?`<span class="n">${n}</span>`:""}</button>`;}).join("")}</div>`;
+  let body="";
+  if(sec==="basic"){
+    body=`<div class="panel"><h3>기본</h3>
+      <div class="fields">
+        <div>${fLabel("직업 · 주 활동")}<input type="text" data-prof="job" value="${esc(P.job)}" placeholder="예: 사무직, 하루 8시간 좌식"></div>
+        <div>${fLabel("운동 경력")}<select data-prof="experience"><option value="">선택</option>
+          ${EXPERIENCE.map(e=>`<option ${P.experience===e?"selected":""}>${e}</option>`).join("")}</select></div></div>
+      <div class="group"><div class="group-head"><h4>운동 목적</h4><span class="note">복수 선택</span></div>
+        ${chipRow("goal",GOALS,P.goals)}</div>
+      <div class="group"><div class="group-head"><h4>자세 · 생활 습관</h4><span class="note">복수 선택</span></div>
+        ${chipRow("habit",POSTURE_HABITS,P.habits)}</div>
+      <div class="group"><div class="group-head"><h4>수업 구성에 제약이 되는 항목</h4></div>
+        ${chipRow("special",SPECIAL,P.special,"alt")}</div>
+      <div class="group"><div class="group-head"><h4>자극 · 통증에 대한 예민함</h4></div>
+        <div class="chips">${SENS.map(s=>`<button class="chip" data-sens="${s.v}"
+          aria-pressed="${String(P.sensitivity)===String(s.v)}">${s.t}</button>`).join("")}</div></div>
+      <div class="group"><div class="fields">
+        <div class="wide">${fLabel("기타 메모")}<input type="text" data-prof="memo" value="${esc(P.memo)}"></div></div></div></div>`;
+  }
+  else if(sec==="pain")body=painSection(P);
+  else if(sec==="dx"){
+    const sel=P.diagnoses||[];
+    body=`<div class="panel"><h3>진단받은 적 있는 질환</h3>
+      <p class="sub">진단을 선택했다고 해서 운동을 중단하는 것은 아닙니다. 선택하면 아래에 확인 항목이 열립니다</p>
+      ${DX_GROUPS.map(g=>`<div class="group"><div class="group-head"><h4>${g.g}</h4><span class="note">복수 선택</span></div>
+        ${chipRow("diag",g.items,sel,"alt")}</div>`).join("")}
+      <div class="fields mt16"><div class="wide">${fLabel("기타 진단")}
+        <input type="text" data-prof="diagnosesEtc" value="${esc(P.diagnosesEtc)}"></div></div></div>
+    ${sel.length?`<div class="panel"><h3>선택한 질환 확인</h3>
+      <p class="sub">오래전 진단이지만 지금은 괜찮은 경우와, 최근 증상이 진행 중인 경우를 구분하기 위한 항목입니다</p>
+      ${sel.map(n=>condBlock(n,(P.conditions||{})[n])).join("")}</div>`:""}
+    <div class="panel"><h3>그 외 불편한 점</h3>${chipRow("disc",DISCOMFORTS,P.discomforts)}
+      <div class="fields mt16"><div class="wide">${fLabel("기타")}
+        <input type="text" data-prof="discomfortsEtc" value="${esc(P.discomfortsEtc)}"></div></div></div>`;
+  }
+  else if(sec==="surgery"){
+    body=`<div class="panel"><h3>수술 · 시술 · 재활</h3>
+      <p class="sub">허용된 동작과 제한 기간을 아는 것이 이 항목의 목적입니다</p>
+      ${surgeryList(P)}</div>
+    <div class="panel"><h3>과거 부상 이력</h3>
+      <div class="fields">${fArea("__prof|injury","부상 · 사고 이력",P.injury,"예: 2019년 좌측 발목 인대 파열, 이후 자주 접질림")}</div></div>`;
+  }
+  else if(sec==="neuro"){
+    body=`<div class="panel"><h3>신경 관련 증상</h3>
+      <p class="sub">새로 생긴 힘 빠짐이나 진행되는 저림은 운동 평가보다 의료 확인이 먼저입니다</p>
+      ${chipRow("neuro",NEURO,P.neuro,"caution")}
+      <div class="fields mt16"><div class="wide">${fLabel("어느 부위에, 언제 나타나는지")}
+        <input type="text" data-prof="neuroNote" value="${esc(P.neuroNote||"")}"
+          placeholder="예: 우측 종아리 바깥쪽, 20분 이상 걸으면"></div></div></div>
+    <div class="panel"><h3>운동 중 겪은 증상</h3>
+      <p class="sub">심혈관 · 호흡 · 대사 상태를 함께 확인합니다</p>
+      ${chipRow("exsym",EX_SYMPTOM,P.exsym,"caution")}
+      <div class="fields mt16"><div class="wide">${fLabel("어떤 상황에서 나타났는지")}
+        <input type="text" data-prof="exsymNote" value="${esc(P.exsymNote||"")}"
+          placeholder="예: 계단 오를 때 숨이 차고 가슴이 답답했음"></div></div></div>`;
+  }
+  else if(sec==="women"){
+    const pe=P.perinatal||{};
+    body=`<div class="panel"><h3>임신 · 출산</h3>
+      <div class="fields">
+        ${fSel("perinatal|status","현재 상태",["해당 없음","임신 중","산후 12주 이내","산후 12주~6개월","산후 6개월 이후"],pe.status)}
+        ${fTxt("perinatal|weeks","임신 주수",pe.weeks,"예: 24주")}
+        <div>${fLabel("출산 예정일")}<input type="text" inputmode="numeric" maxlength="10" data-mask="date"
+          data-pobj="perinatal|edd" placeholder="0000-00-00" value="${esc(pe.edd||"")}"></div>
+        <div>${fLabel("출산일")}<input type="text" inputmode="numeric" maxlength="10" data-mask="date"
+          data-pobj="perinatal|birth" placeholder="0000-00-00" value="${esc(pe.birth||"")}"></div>
+        ${fSel("perinatal|mode","분만 방식",["자연분만","제왕절개","흡입·겸자 분만","해당 없음"],pe.mode)}
+        ${fSel("perinatal|feeding","수유 여부",["수유 중","수유 안 함"],pe.feeding)}
+        ${fArea("perinatal|complication","합병증 · 회복 상태",pe.complication,"예: 임신성 당뇨, 회음부 절개 회복 중")}
+        ${fArea("perinatal|limit","산부인과에서 안내받은 제한",pe.limit,"예: 12주까지 복압 운동 금지")}
+      </div></div>
+    <div class="panel"><h3>골반저 · 복벽 증상</h3>
+      <p class="sub">증상이 있으면 어떤 동작에서 나타나는지 함께 적어주세요. 전문 평가가 필요할 수 있습니다</p>
+      ${chipRow("pelvic",PELVIC,P.pelvic,"alt")}
+      <div class="fields mt16"><div class="wide">${fLabel("어떤 동작에서 나타나는지")}
+        <input type="text" data-prof="pelvicNote" value="${esc(P.pelvicNote||"")}"
+          placeholder="예: 점프, 기침, 복부 운동 마지막 반복에서"></div></div></div>`;
+  }
+  else if(sec==="balance"){
+    body=`<div class="panel"><h3>낙상 · 균형</h3>
+      ${chipRow("fall",FALLS,P.fall,"caution")}
+      <div class="fields mt16"><div class="wide">${fLabel("낙상 상황 · 보조 조건")}
+        <input type="text" data-prof="fallNote" value="${esc(P.fallNote||"")}"
+          placeholder="예: 올해 2회, 계단 내려올 때. 실내에서는 지팡이 없이 이동"></div></div></div>
+    <div class="panel"><h3>관절 불안정 · 과가동성</h3>
+      <p class="sub">잘 늘어나는 관절에 스트레칭을 더하기보다, 조절할 수 있는 범위를 확인합니다</p>
+      ${chipRow("joint",JOINT_INSTAB,P.joint,"alt")}
+      <div class="fields mt16"><div class="wide">${fLabel("어느 관절인지")}
+        <input type="text" data-prof="jointNote" value="${esc(P.jointNote||"")}"
+          placeholder="예: 좌측 어깨, 양쪽 발목"></div></div></div>`;
+  }
+  else if(sec==="meds"){
+    const md=P.meds||{};
+    body=`<div class="panel"><h3>복용 중인 약</h3>
+      <p class="sub">약 이름을 다 몰라도 괜찮습니다. 용도와 최근 변경 여부가 더 중요합니다</p>
+      ${chipRow("meds",MED_TAGS,P.medTags,"alt")}
+      <div class="fields mt16">
+        ${fArea("meds|list","약 이름 또는 용도",md.list,"예: 혈압약(아침), 갑상선약")}
+        ${fSel("meds|changed","최근 변경",["변경 없음","최근 1개월 내 변경","최근 3개월 내 변경","미확인"],md.changed)}
+      </div>
+      <div class="group"><div class="group-head"><h4>복용 후 경험</h4></div>
+        ${chipRow("medeff",MED_EFFECT,P.medEffects,"caution")}</div>
+      <div class="fields"><div class="wide">${fLabel("의료진에게 들은 운동 관련 주의사항")}
+        <input type="text" data-pobj="meds|note" value="${esc(md.note||"")}"
+          placeholder="예: 운동 전 혈당 확인, 어지럼 있으면 중단"></div></div></div>`;
+  }
+  else if(sec==="life"){
+    const L=P.life||{};
+    body=`<div class="panel"><h3>회복 · 생활 기능</h3>
+      <div class="fields">
+        ${fSel("life|sleep","수면",SLEEPQ,L.sleep)}
+        ${fSel("life|fatigue","피로",FATIGUE,L.fatigue)}
+        ${fSel("life|fear","운동에 대한 두려움",FEAR,L.fear)}
+        ${fSel("life|recovery","이전 수업 후 회복 양상",RECOVERY,L.recovery)}
+        ${fArea("life|hard","일상에서 어려운 활동",L.hard,"예: 아이 안고 계단 오르기, 30분 이상 걷기")}
+        ${fArea("__prof|discomfort","지금 가장 불편한 점",P.discomfort,"회원이 말한 표현 그대로")}
+        <div>${fLabel("전반적인 불편감 강도 (0~10)")}
+          <input type="number" min="0" max="10" data-prof="nrs" value="${esc(P.nrs)}"></div>
+      </div></div>`;
+  }
+  else if(sec==="safety"){
+    body=`<div class="panel"><h3>즉시 확인이 필요한 신호</h3>
+      <p class="sub">하나라도 선택되면 운동 우선순위 생성을 보류하고 의료 평가를 먼저 안내합니다</p>
+      ${chipRow("urgent",URGENT_FLAGS,P.urgent,"caution")}</div>
+    <div class="panel"><h3>수업 전 확인을 권하는 신호</h3>
+      ${chipRow("watch",WATCH_FLAGS,watchOf(m),"alt")}
+      <p class="hint mt16">이 항목들은 점수에 반영되지 않습니다. 수업 구성 주의사항과 리포트에만 나타납니다.</p></div>`;
+  }
+  return memberHead(m,"문진")+safetyBanner(m)+nav+body;
+}
+function safetyBanner(m){
+  const u=urgentOf(m);if(!u.length)return "";
+  return `<div class="urgentbar"><h4>의료 평가를 먼저 안내해 주세요</h4>
+    <ul>${u.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
+    <p>이 상태에서는 운동 우선순위를 만들지 않습니다. 흉통·호흡곤란·한쪽 마비·갑작스러운 심한 두통은 119 등 응급 대응이 필요할 수 있습니다.</p></div>`;
+}
+function intakeSummary(m){
+  const P=m.profile,w=watchOf(m);
+  const line=(l,v)=>v?`<span class="pill">${l}</span>${esc(v)}<br>`:"";
+  const pn=P.pain||{};
+  return safetyBanner(m)+`<div class="panel">
+    <div class="srow" style="justify-content:space-between">
+      <div><h3>문진 요약</h3><p class="sub" style="margin-bottom:0">필요한 항목만 채워도 됩니다</p></div>
+      <button class="btn" data-go="intake">문진 열기</button></div>
+    <div class="sumline mt16">
+      ${line("목적",(P.goals||[]).join(", "))}
+      ${line("통증",painLine(P))}
+      ${line("느낌",mainPain(P).quality||pn.quality)}
+      ${line("진단",(P.diagnoses||[]).concat(P.diagnosesEtc?[P.diagnosesEtc]:[]).join(", "))}
+      ${line("수술",(P.surgeries||[]).map(s=>[s.name,s.side,s.stage].filter(Boolean).join(" ")).join(" / "))}
+      ${line("신경",(P.neuro||[]).join(", "))}
+      ${line("골반저",(P.pelvic||[]).join(", "))}
+      ${line("약",(P.medTags||[]).join(", "))}
+      ${line("특이",(P.special||[]).join(", "))}
+      ${P.sensitivity?`<span class="pill">예민함</span>${esc(P.sensitivity)}/5<br>`:""}
+      ${w.length?`<span class="pill">확인 권장</span>${esc(w.join(", "))}`:""}
+      ${!(P.goals||[]).length&&!(P.diagnoses||[]).length&&!(P.painSites||[]).length?`<span class="hint">아직 작성된 문진이 없습니다.</span>`:""}
+    </div></div>`;
+}
+function memberView(){
+  const m=member();if(!m)return "";
+  const last=live(m.assessments).slice(-1)[0],lastS=live(m.sessions).slice(-1)[0],lastN=live(m.notes).slice(-1)[0];
+  return `<div class="panel">
+    <div class="srow" style="justify-content:space-between">
+      <div><h2>${esc(m.name)}</h2>
+        <p class="sub" style="margin-bottom:0">${esc([m.sex,m.dob?"생년월일 "+dobLine(m.dob):"",telFmt(m.phone)].filter(Boolean).join(" · ")||"기본 정보 없음")}</p></div>
+      <div class="srow">${isAdmin()?`<span class="hint">담당</span>
+        <select data-owner="${m.id}" style="width:auto"><option value="">미배정</option>
+        ${staffOf().map(s=>`<option value="${s.id}" ${m.ownerId===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select>`
+        :`<button class="btn primary" data-act="newAssess">새 평가</button>
+        ${last?`<button class="btn" data-act="reassess">재평가</button>`:""}`}
+        ${isAdmin()&&can("del")?`<button class="btn sm danger" data-admdel="member|${m.id}">회원 삭제</button>`:""}</div></div>
+    <div class="cards mt24">
+      <button class="card" data-go="intake"><span class="ct">문진</span>
+        <div class="cv">${secTotal(m)}</div><div class="cs">${urgentOf(m).length?"안전 신호 확인 필요":"작성 항목"}</div></button>
+      <button class="card" data-go="assessments"><span class="ct">평가 이력</span><div class="cv">${live(m.assessments).length}</div>
+        <div class="cs">${last?fmt(last.date)+" "+esc(last.type):"평가 전"}</div></button>
+      <button class="card" data-go="sessions"><span class="ct">수업 기록</span><div class="cv">${live(m.sessions).length}</div>
+        <div class="cs">${lastS?fmt(lastS.date)+" "+lastS.no+"회차":"기록 없음"}</div></button>
+      <button class="card" data-go="notes"><span class="ct">특이사항</span><div class="cv">${live(m.notes).length}</div>
+        <div class="cs">${lastN?fmt(lastN.date)+" 최근 기록":"기록 없음"}</div></button>
+    </div></div>
+  ${intakeSummary(m)}
+  ${last?priorityMini(last):`<div class="panel"><h3>우선순위</h3><p class="hint">첫 평가를 마치면 여기에 표시됩니다.</p></div>`}`;
+}
+function priorityMini(a){
+  const top=priorities(a).ranked.filter(x=>x.state!=="exclude").slice(0,3);
+  return `<div class="panel"><h3>최근 우선순위</h3><p class="sub">${esc(fmt(a.date))} ${esc(a.type)} 기준</p>
+    ${top.map((x,i)=>`<div class="prio"><div class="ptop"><span class="rank">${i+1}순위</span><h4>${DOMAINS[x.dom].ko}</h4>
+      <span class="badge ${x.confirmed?"":"gold"}">${x.confirmed?"움직임에서 확인됨":"추가 확인 필요"}</span></div>
+      <p>${esc(DOMAINS[x.dom].early)}</p></div>`).join("")||`<p class="hint">체크된 항목이 없습니다.</p>`}
+    <div class="srow mt16"><button class="btn sm" data-report="${a.id}">리포트 보기</button></div></div>`;
+}
+const secTotal=m=>INTAKE_SECS.reduce((n,[k])=>n+secCount(m.profile,k),0);
+function memberHead(m,title){
+  return `<div class="panel"><div class="srow" style="justify-content:space-between">
+    <div><h2>${esc(title)}</h2><p class="sub" style="margin-bottom:0">${esc(m.name)}${m.dob?" · "+dobLine(m.dob):""}</p></div>
+    <button class="btn ghost sm" data-go="member">회원 정보로</button></div></div>`;
+}
+function assessmentsView(){
+  const m=member();if(!m)return "";
+  const rows=live(m.assessments).slice().reverse().map(x=>{
+    const p=priorities(x).ranked.filter(y=>y.state!=="exclude").slice(0,3).map(y=>DOMAINS[y.dom].ko).join(" › ")||"–";
+    const ph=PHOTOSLOTS.filter(s=>x.photos&&x.photos[s.k]).length+((x.photos&&x.photos.extra||[]).length);
+    return `<tr><td class="num">${esc(fmt(x.date))}</td><td><button class="rowbtn" data-report="${x.id}">${esc(x.type)}</button></td>
+      <td>${esc(p)}</td><td class="num">${ph?ph+"장":"–"}</td>
+      <td class="act"><button class="btn sm" data-edit="${x.id}">열기</button>
+      ${can("del")?`<button class="btn sm danger" data-admdel="assess|${x.id}">삭제</button>`:""}</td></tr>`;}).join("");
+  return memberHead(m,"평가 이력")+`<div class="panel">
+    <div class="srow" style="justify-content:space-between;margin-bottom:10px">
+      <p class="sub" style="margin:0">평가마다 사진·우선순위·수업 설계가 함께 저장됩니다</p>
+      <span class="srow"><button class="btn primary sm" data-act="newAssess">새 평가</button>
+      ${live(m.assessments).length?`<button class="btn sm" data-act="reassess">재평가</button>`:""}</span></div>
+    ${live(m.assessments).length?`<div class="tablewrap"><table class="grid">
+      <thead><tr><th>날짜</th><th>종류</th><th>우선순위</th><th>사진</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+      :`<div class="mutedbox">아직 평가가 없습니다.</div>`}
+    <p class="hint mt16">${can("del")?"삭제한 기록은 되돌릴 수 없습니다.":"기록 삭제는 어드민 계정에서만 할 수 있습니다."}</p></div>`;
+}
+function sessionsView(){
+  const m=member();if(!m)return "";
+  const rs=rooms(),list=live(m.sessions).slice().sort((a,b)=>(b.no||0)-(a.no||0));
+  const rows=list.map(s=>`<tr><td class="num">${s.no}회차</td>
+    <td class="num">${esc(fmt(s.date))}${s.time?"<br>"+esc(s.time):""}</td><td>${esc(s.room||"–")}</td><td>${esc(s.equip||"–")}</td>
+    <td>${esc(s.content||"")}${s.response?`<br><span class="hint">반응: ${esc(s.response)}</span>`:""}${s.homework?`<br><span class="hint">숙제: ${esc(s.homework)}</span>`:""}${s.next?`<br><span class="hint">다음: ${esc(s.next)}</span>`:""}${s.special?`<br><span class="hint">특이: ${esc(s.special)}</span>`:""}${(s.since||[]).length?`<br><span class="hint">지난 수업 이후: ${esc(s.since.join(", "))}</span>`:""}${s.recovery?`<br><span class="hint">회복: ${esc(s.recovery)}</span>`:""}</td>
+    ${can("del")?`<td class="act"><button class="btn sm danger" data-admdel="session|${s.id}">삭제</button></td>`:"<td></td>"}</tr>`).join("");
+  return memberHead(m,"수업 기록")+`<div class="panel">
+    <h3>기록 추가</h3><p class="sub">특이사항을 적으면 회원 특이사항 목록에도 함께 쌓입니다</p>
+    <div class="fields">
+      <div><label class="f" for="sno">회차</label><input id="sno" type="number" min="1" value="${(list[0]?list[0].no:0)+1}"></div>
+      ${dateField("sdate",today(),"날짜")}
+      <div><label class="f" for="stime">시간</label><select id="stime"><option value="">선택</option>
+        ${TIMES.map(t=>`<option>${t}</option>`).join("")}</select></div>
+      <div><label class="f" for="sroom">룸</label><select id="sroom"><option value="">선택</option>
+        ${rs.map(r=>`<option>${esc(r.name)}</option>`).join("")}</select></div>
+      <div><label class="f" for="sequip">사용 기구</label><input id="sequip" type="text" placeholder="리포머 / 체어 / 바렐"></div>
+      <div class="wide"><label class="f" for="scontent">진행 내용</label><textarea id="scontent"></textarea></div>
+      <div><label class="f" for="sresp">회원 반응</label><input id="sresp" type="text"></div>
+      <div><label class="f" for="shw">숙제</label><input id="shw" type="text" placeholder="집에서 할 과제"></div>
+      <div><label class="f" for="snext">다음 계획</label><input id="snext" type="text"></div>
+      <div><label class="f" for="srec">지난 수업 후 회복</label><select id="srec"><option value="">선택</option>
+        ${RECOVERY.map(o=>`<option>${o}</option>`).join("")}</select></div>
+      <div class="wide"><label class="f" for="sspec">특이사항</label><input id="sspec" type="text"
+        placeholder="여기에 적으면 회원 특이사항에도 함께 쌓입니다"></div>
+    </div>
+    <div class="group"><div class="group-head"><h4>지난 수업 이후 변화</h4>
+      <span class="note">매 수업 짧게 확인하는 항목</span></div>
+      <div class="chips">${SINCE_LAST.map(x=>`<button class="chip" data-since="${x}"
+        aria-pressed="${(S.since||[]).includes(x)}">${x}</button>`).join("")}</div></div>
+    ${rs.length?"":`<p class="hint mt16">룸 목록이 비어 있습니다. 센터 관리자 앱에서 룸을 등록하면 여기에 나타납니다.</p>`}
+    <div class="mt16"><button class="btn primary" data-act="addSession">기록 추가</button></div></div>
+  <div class="panel">${list.length?`<div class="tablewrap"><table class="grid">
+    <thead><tr><th>회차</th><th>일시</th><th>룸</th><th>기구</th><th>내용</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+    :`<div class="mutedbox">아직 수업 기록이 없습니다.</div>`}</div>`;
+}
+function notesView(){
+  const m=member();if(!m)return "";
+  const list=live(m.notes).slice().sort((a,b)=>a.date<b.date?1:-1);
+  return memberHead(m,"특이사항")+`<div class="panel"><h3>직접 추가</h3>
+    <div class="fields">${dateField("ndate2",today(),"날짜")}
+      <div class="wide"><label class="f" for="ntext2">내용</label><input id="ntext2" type="text" placeholder="수업 중 알게 된 내용, 회원이 말한 변화 등"></div></div>
+    <div class="mt16"><button class="btn primary" data-act="addNote">추가</button></div></div>
+  <div class="panel">${list.length?`<ul class="notelog">${list.map(n=>`<li><span class="nd">${esc(fmt(n.date))}</span>
+    <span class="nt">${esc(n.text)}${n.src?`<span class="note-src">${esc(n.src)}</span>`:""}</span>
+    ${can("del")?`<button class="btn sm danger" data-admdel="note|${n.id}">삭제</button>`:""}</li>`).join("")}</ul>`
+    :`<div class="mutedbox">기록된 특이사항이 없습니다.</div>`}
+    <p class="hint mt16">수업 기록에 적은 특이사항도 여기에 함께 모입니다.</p></div>`;
+}
+
+/* ---------- 평가 ---------- */
+function steps(){
+  const a=S.draft,l=[{k:"overview",t:"평가 개요"}];
+  if(a.scope.photos)l.push({k:"photos",t:"평가 사진"});
+  if(a.scope.statics)l.push({k:"statics",t:"정적 관찰"});
+  if(a.scope.tests)l.push({k:"tests",t:"움직임 평가"});
+  if(a.scope.cues)l.push({k:"cues",t:"큐잉 반응"});
+  l.push({k:"result",t:"우선순위"},{k:"plan",t:"수업 설계"});return l;
+}
+function stepCount(k){
+  const a=S.draft;
+  if(k==="photos")return PHOTOSLOTS.filter(s=>a.photos[s.k]).length+((a.photos.extra||[]).length);
+  if(k==="statics")return Object.values(a.statics).filter(Boolean).length;
+  if(k==="tests")return Object.values(a.tests).reduce((n,r)=>n+(r&&r.items?Object.values(r.items).filter(Boolean).length:0),0);
+  if(k==="cues")return Object.keys(a.cues).filter(x=>x!=="_memo").length;
+  return 0;
+}
+function assessView(){
+  const L=steps();if(S.step>=L.length)S.step=L.length-1;
+  const rail=`<div class="rail"><ol>${L.map((s,i)=>`<li><button data-step="${i}" aria-current="${S.step===i}">
+    <span>${i+1}. ${s.t}</span><span class="count">${stepCount(s.k)||""}</span></button></li>`).join("")}</ol></div>`;
+  return `<div class="split">${rail}<div>${
+    {overview:overviewStep,photos:photoStep,statics:staticStep,tests:moveStep,cues:cueStep,result:resultStep,plan:planStep}[L[S.step].k]()}</div></div>`;
+}
+function overviewStep(){
+  const a=S.draft,m=member(),P=m.profile;
+  return safetyBanner(m)+`<div class="panel"><h2>평가 개요</h2>
+    <p class="sub">${a.type==="초도 평가"?"초도 평가는 모든 항목을 한 번 훑는 것을 권합니다":"재평가는 필요한 항목만 골라서 진행하세요"}</p>
+    <div class="fields">${dateField("a_date",a.date,"평가일",{bind:"date"})}
+      <div><label class="f" for="a_type">평가 종류</label><select id="a_type" data-field="type">
+        ${["초도 평가","5회 재평가","10회 재평가","수시 재평가"].map(t=>`<option ${a.type===t?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="wide"><label class="f" for="a_memo">이번 평가 메모</label>
+        <input id="a_memo" type="text" data-field="memo" value="${esc(a.memo||"")}"></div></div>
+    <div class="group"><div class="group-head"><h4>이번 평가에 포함할 항목</h4><span class="note">선택한 단계만 진행합니다</span></div>
+      <div class="chips">${chip("scope:photos","평가 사진",a.scope.photos)}${chip("scope:statics","정적 관찰",a.scope.statics)}
+        ${chip("scope:tests","움직임 평가",a.scope.tests)}${chip("scope:cues","큐잉 반응",a.scope.cues)}</div></div></div>
+  <div class="panel"><h3>회원 문진 요약</h3>
+    <p style="font-size:14px;margin:0">
+      ${P.goals.length?`<span class="pill">목적</span>${esc(P.goals.join(", "))}<br>`:""}
+      ${P.habits.length?`<span class="pill">습관</span>${esc(P.habits.join(", "))}<br>`:""}
+      ${P.diagnoses.length||P.diagnosesEtc?`<span class="pill">진단</span>${esc(P.diagnoses.concat(P.diagnosesEtc?[P.diagnosesEtc]:[]).join(", "))}<br>`:""}
+      ${P.discomforts.length||P.discomfortsEtc?`<span class="pill">불편</span>${esc(P.discomforts.concat(P.discomfortsEtc?[P.discomfortsEtc]:[]).join(", "))}<br>`:""}
+      ${P.sensitivity?`<span class="pill">예민함</span>${esc(P.sensitivity)}/5<br>`:""}
+      ${P.special.length?`<span class="pill">특이</span>${esc(P.special.join(", "))}<br>`:""}
+      ${P.discomfort?`<span class="pill">현재 불편감</span>${esc(P.discomfort)}${P.nrs?` (강도 ${esc(P.nrs)})`:""}`:""}</p>
+    ${live(m.notes).length?`<div class="divider"></div><h4 style="font-size:14px">최근 특이사항</h4>
+      <ul class="notelog">${live(m.notes).slice(-4).reverse().map(n=>`<li><span class="nd">${esc(fmt(n.date))}</span>
+        <span class="nt">${esc(n.text)}${n.src?`<span class="note-src">${esc(n.src)}</span>`:""}</span></li>`).join("")}</ul>`:""}
+    ${watchOf(m).length?`<div class="calloutbox warn" style="margin-top:14px"><h4>수업 전 확인이 필요한 신호</h4>
+      <ul>${watchOf(m).map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}</div>`;
+}
+function photoStep(){
+  const a=S.draft,ph=a.photos,ex=ph.extra||[];
+  const slot=(k,t,src)=>`<div class="slot"><div class="cap"><span>${t}</span>${src?`<button data-delphoto="${k}">지우기</button>`:""}</div>
+    <div class="box">${src?`<img src="${src}" alt="${t}">`:`<label>사진 추가</label>`}
+      <input type="file" accept="image/*" data-photo="${k}" aria-label="${t}"></div></div>`;
+  return `<div class="panel"><h2>평가 사진</h2>
+    <p class="sub">정면·후면·좌·우는 고정이고, 추가 사진은 ${MAX_EXTRA_PHOTOS}장까지 넣을 수 있습니다</p>
+    <div class="photogrid small">
+      ${PHOTOSLOTS.map(s=>slot(s.k,s.t,ph[s.k])).join("")}
+      ${ex.map((e,i)=>slot("extra:"+i,"추가 "+(i+1),e.data)).join("")}
+      ${ex.length<MAX_EXTRA_PHOTOS?`<div class="slot"><div class="cap"><span>추가 ${ex.length+1}</span></div>
+        <div class="box"><label>사진 추가</label><input type="file" accept="image/*" multiple data-photo="extra"></div></div>`:""}</div>
+    ${ex.length>=MAX_EXTRA_PHOTOS?`<p class="hint mt16">추가 사진은 ${MAX_EXTRA_PHOTOS}장까지입니다.</p>`:""}
+    <div class="fields mt16"><div class="wide"><label class="f" for="pnote">사진 메모</label>
+      <input id="pnote" type="text" data-field="photoNote" value="${esc(a.photoNote||"")}" placeholder="예: 맨발, 정면 2m 거리"></div></div></div>`;
+}
+function staticStep(){
+  const a=S.draft;
+  return `<div class="panel"><h2>정적 관찰</h2>
+    <p class="sub">정적 소견만으로는 결론을 내지 않고, 움직임 평가에서 확인된 것만 우선순위로 올라갑니다.</p>
+    ${STATIC.map(g=>`<div class="group"><div class="group-head"><h4>${g.g}</h4><span class="note">${esc(g.note)}</span></div>
+      <div class="pairs">${g.items.map(it=>prow(a.statics,it)).join("")}</div></div>`).join("")}</div>`;
+}
+function moveStep(){
+  const a=S.draft,m=member(),RT=restrictedTests(m);
+  return `<div class="panel"><h2>움직임 평가</h2>
+    <p class="sub">수행한 검사만 '실시함'으로 표시하세요.</p>
+    ${Object.keys(RT).filter(k=>RT[k]).length?`<div class="calloutbox warn"><h4>이 회원에게 권하지 않는 평가가 있습니다</h4>
+      <ul>${Object.keys(RT).filter(k=>RT[k]).map(k=>`<li>${TEST_INDEX[k]?TEST_INDEX[k].name:k} — ${esc(RT[k])}</li>`).join("")}</ul></div>`:""}
+    ${TESTS.map(T=>{const rec=a.tests[T.id]||{done:false,items:{},note:""};
+      const n=Object.values(rec.items||{}).filter(Boolean).length;
+      const warnT=RT[T.id];
+      return `<details class="test ${n?"flagged":""}" ${rec.done&&!warnT?"open":""}>
+        <summary><span><span class="tname">${T.name}</span><span class="ten"> ${T.en}</span></span>
+          <span class="tstate">${rec.done?(n?`소견 ${n}`:"소견 없음"):"미실시"}
+          <span class="badge ${rec.done?"":"quiet"}">${rec.done?"실시함":"미실시"}</span></span></summary>
+        <div class="tbody">${warnT?`<div class="calloutbox warn" style="margin-top:0"><h4>의료 확인 전 권장하지 않음</h4>${esc(warnT)}</div>`:""}
+          <p class="hint" style="margin:0 0 10px">${esc(T.how)}</p>
+          <div class="srow" style="margin-bottom:10px">
+            <button class="btn sm ${rec.done?"primary":""}" data-testdone="${T.id}">${rec.done?"실시함":"이 검사 실시함으로 표시"}</button>
+            ${n?`<button class="btn sm ghost" data-testclear="${T.id}">소견 지우기</button>`:""}</div>
+          <div class="pairs">${T.items.map(it=>prow(rec.items||{},it,T.id)).join("")}</div>
+          <div class="fields mt16"><div class="wide"><label class="f" for="n_${T.id}">관찰 메모</label>
+            <input id="n_${T.id}" type="text" data-testnote="${T.id}" value="${esc(rec.note||"")}"></div></div></div></details>`;}).join("")}</div>`;
+}
+function cueStep(){
+  const a=S.draft;
+  return `<div class="panel"><h2>큐잉 반응</h2><p class="sub">이 회원에게 무엇이 통하는지 기록합니다.</p>
+    ${CUES.map(c=>`<div class="rowline"><span class="lbl">${c.t}${c.sub?`<em>${esc(c.sub)}</em>`:""}</span>
+      <span class="seg">${c.opts.map(o=>`<button data-cue="${c.id}|${o}" aria-pressed="${a.cues[c.id]===o}">${o}</button>`).join("")}</span></div>`).join("")}
+    <div class="fields mt16"><div class="wide"><label class="f" for="cuememo">큐잉 관련 메모</label>
+      <input id="cuememo" type="text" data-cuememo="1" value="${esc(a.cues._memo||"")}"></div></div></div>`;
+}
+function scoreBars(a){
+  const {scores}=priorities(a),max=Math.max(1,...DORDER.map(k=>scores[k].total));
+  return `<ul class="scorelist">${DORDER.map(k=>{const s=scores[k],conf=s.move>0;
+    return `<li class="scorerow"><span class="dname">${DOMAINS[k].ko}<em>${DOMAINS[k].en}</em></span>
+      <span class="track"><span class="fill ${conf?"":"unconfirmed"}" style="width:${s.total?Math.max(Math.round(s.total/max*100),4):0}%"></span></span>
+      <span class="val">${s.total||"–"}${s.total?(conf?"":" ?"):""}</span></li>`;}).join("")}</ul>
+    <div class="legend"><span><i style="background:var(--deep)"></i>움직임에서 확인됨</span>
+    <span><i style="background:repeating-linear-gradient(115deg,var(--pale) 0 5px,var(--wash) 5px 10px)"></i>정적 관찰만 · 확인 필요</span></div>`;
+}
+function resultStep(){
+  const a=S.draft,m=member();
+  const {ranked}=priorities(a),sug=suggestions(a),caut=cautions(m,a),flags=watchOf(m),urg=urgentOf(m);
+  const evid=x=>{const mv=x.from.move.slice(0,3),st=x.from.static.slice(0,3);
+    return [mv.length?"움직임: "+mv.join(", "):null,st.length?"관찰: "+st.join(", "):null].filter(Boolean).join(" / ")||"직접 추가한 항목";};
+  return `<div class="panel"><h2>운동 우선순위</h2>
+    <p class="sub">진단이 아니라, 무엇을 먼저 다룰지에 대한 제안입니다. 강사의 판단으로 조정하세요.</p>
+    ${safetyBanner(m)}
+    ${flags.length?`<div class="calloutbox warn"><h4>수업 전 확인을 권합니다</h4>
+      <ul>${flags.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}${scoreBars(a)}</div>
+  <div class="panel"><h3>제안된 순서</h3>
+    ${urg.length?`<div class="urgentbar"><h4>우선순위 생성을 보류했습니다</h4>
+      <p>즉시 확인이 필요한 신호가 선택되어 있습니다. 의료 평가 결과를 확인한 뒤 진행하세요.</p></div>
+      <details><summary class="hint" style="cursor:pointer">그래도 참고용으로 순서 보기</summary>`:""}
+    ${ranked.length?ranked.map((x,i)=>`<div class="prio ${x.state==="exclude"?"excluded":""} ${x.state==="demote"||x.state==="manual"?"edited":""}">
+      <div class="ptop"><span class="rank">${x.state==="exclude"?"제외됨":(i+1)+"순위"}</span>
+        <h4>${DOMAINS[x.dom].ko}</h4><span class="pen">${DOMAINS[x.dom].en}</span>
+        <span class="badge ${x.confirmed?"":"gold"}">${x.confirmed?"움직임에서 확인됨":"정적 관찰만 · 확인 필요"}</span></div>
+      <p>${esc(evid(x))}</p><p style="font-size:13.5px;color:var(--ink3)">초기 접근: ${esc(DOMAINS[x.dom].early)}</p>
+      <div class="actions"><button class="chip" data-ov="${x.dom}|agree" aria-pressed="${x.state==="agree"||x.state==="manual"}">동의</button>
+        <button class="chip" data-ov="${x.dom}|demote" aria-pressed="${x.state==="demote"}">순위 낮춤</button>
+        <button class="chip" data-ov="${x.dom}|exclude" aria-pressed="${x.state==="exclude"}">제외</button></div></div>`).join("")
+      :`<p class="hint">체크된 항목이 없습니다.</p>`}
+    ${urg.length?"</details>":""}
+    <div class="divider"></div>
+    <div class="srow"><span class="hint">직접 추가</span>
+      <select id="addon" style="width:auto"><option value="">항목 선택</option>
+      ${DORDER.map(k=>`<option value="${k}">${DOMAINS[k].ko}</option>`).join("")}</select>
+      <button class="btn sm" data-act="addon">1순위로 추가</button></div>
+    <div class="fields mt16"><div class="wide"><label class="f" for="ovmemo">판단 근거 메모</label>
+      <input id="ovmemo" type="text" data-field="ovmemo" value="${esc(a.ovmemo||"")}"></div></div></div>
+  ${sug.length?`<div class="panel"><h3>추가 확인 권장</h3><p class="sub">정적 관찰에서만 나온 소견입니다</p>
+    ${sug.map(s=>`<div class="calloutbox"><h4>${DOMAINS[s.dom].ko}</h4>
+      <ul>${s.tests.map(t=>`<li>${TEST_INDEX[t].name}</li>`).join("")}</ul></div>`).join("")}
+    ${a.scope.tests?`<button class="btn sm" data-gotostep="tests">움직임 평가로 이동</button>`:""}</div>`:""}
+  ${caut.length?`<div class="panel"><h3>수업 구성 시 주의</h3>
+    <ul style="margin:8px 0 0;padding-left:18px">${caut.map(c=>`<li style="margin:4px 0;font-size:14px">${esc(c)}</li>`).join("")}</ul></div>`:""}`;
+}
+function planTable(a){
+  const {rows}=planFor(a);
+  return `<table class="plan"><thead><tr><th style="width:30%">단계</th><th style="width:22%">중심 과제</th><th>수업 방향</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td class="ph">${r.name}<em>${r.from===r.to?r.from+"회차":r.from+"–"+r.to+"회차"}</em></td>
+      <td>${r.focus.map(esc).join("<br>")}</td><td><ul>${r.dir.map(x=>`<li>${esc(x)}</li>`).join("")}
+      ${r.retest.length?`<li class="hint">확인 검사: ${r.retest.map(t=>TEST_INDEX[t].name).join(" · ")}</li>`:""}</ul></td></tr>`).join("")}</tbody></table>`;
+}
+function planStep(){
+  const a=S.draft,m=member();
+  const {top}=planFor(a),caut=cautions(m,a),guide=cueGuide(m,a);
+  return `<div class="panel"><h2>수업 설계</h2><p class="sub">등록 횟수에 맞춰 큰 방향만 잡아줍니다.</p>
+    <div class="srow"><span class="seg">${[5,10,20,30].map(n=>`<button data-pkg="${n}" aria-pressed="${a.pkg===n}">${n}회</button>`).join("")}</span>
+      <input type="number" min="1" max="60" value="${a.pkg}" data-pkgcustom="1" style="width:92px" aria-label="등록 횟수"></div>
+    <div class="mt24">${planTable(a)}</div>
+    ${top.length?`<p class="hint mt16">중심 우선순위: ${top.map((t,i)=>`${i+1}. ${DOMAINS[t.dom].ko}`).join("  ")}</p>`:""}</div>
+  ${guide.length?`<div class="panel"><h3>이 회원에게 맞는 큐잉</h3>
+    <ul style="margin:8px 0 0;padding-left:18px">${guide.map(g=>`<li style="margin:4px 0;font-size:14px">${esc(g)}</li>`).join("")}</ul></div>`:""}
+  ${caut.length?`<div class="panel"><h3>주의</h3>
+    <ul style="margin:8px 0 0;padding-left:18px">${caut.map(c=>`<li style="margin:4px 0;font-size:14px">${esc(c)}</li>`).join("")}</ul></div>`:""}
+  <div class="panel noprint"><h3>강사 메모</h3>
+    <textarea data-field="planMemo">${esc(a.planMemo||"")}</textarea>
+    <div class="mt16 srow"><button class="btn primary" data-act="save">평가 저장</button>
+      <button class="btn" data-act="reportNow">리포트 보기</button></div></div>`;
+}
+function photoStrip(a){
+  const ph=a.photos||{};
+  const all=PHOTOSLOTS.filter(s=>ph[s.k]).map(s=>({t:s.t,d:ph[s.k]})).concat((ph.extra||[]).map((e,i)=>({t:"추가 "+(i+1),d:e.data})));
+  if(!all.length)return "";
+  return `<div class="panel"><h3>평가 사진</h3>${a.photoNote?`<p class="sub">${esc(a.photoNote)}</p>`:""}
+    <div class="photogrid small">${all.map(x=>`<div class="slot"><div class="cap"><span>${esc(x.t)}</span></div>
+      <div class="box"><img src="${x.d}" alt=""></div></div>`).join("")}</div></div>`;
+}
+function reportView(){
+  const m=member(),as=live(m.assessments);
+  const a=as.find(x=>x.id===S.viewAssessId)||as.slice(-1)[0];
+  if(!a)return `<div class="panel"><p>평가가 없습니다.</p></div>`;
+  const P=m.profile,top=priorities(a).ranked.filter(x=>x.state!=="exclude").slice(0,3);
+  const caut=cautions(m,a),guide=cueGuide(m,a);
+  const findings=Object.entries(a.tests).filter(([,r])=>r&&r.items&&Object.values(r.items).some(Boolean))
+    .map(([tid,r])=>`<li><strong>${TEST_INDEX[tid].name}</strong><p>${Object.keys(r.items).filter(k=>r.items[k])
+      .map(k=>esc(TEST_INDEX[tid].index[baseId(k)].t+(sideOf(k)?" "+sideOf(k):""))).join(", ")}${r.note?" — "+esc(r.note):""}</p></li>`).join("");
+  const prev=as.filter(x=>x.date<=a.date&&x.id!==a.id).slice(-1)[0];
+  return `<div class="panel">
+    <div class="srow noprint" style="justify-content:space-between">
+      <button class="btn sm ghost" data-act="back">뒤로</button>
+      <span class="srow"><button class="btn sm" data-act="print">인쇄</button><button class="btn sm" data-edit="${a.id}">평가 수정</button></span></div>
+    <p class="centername mt16">${esc(centerName())} · ${esc(isAdmin()?ownerName(m.ownerId)+" 강사":SESSION.name+" 강사")}</p>
+    <h2>${esc(m.name)} · ${esc(a.type)}</h2>
+    <p class="sub">${esc(a.date)}${m.dob?" · "+dobLine(m.dob):""}${P.job?" · "+esc(P.job):""}</p>
+    ${a.memo?`<p class="hint">${esc(a.memo)}</p>`:""}
+    ${safetyBanner(m)}
+    ${watchOf(m).length?`<div class="calloutbox warn"><h4>수업 전 확인 권장</h4><ul>${watchOf(m).map(f=>`<li>${esc(f)}</li>`).join("")}</ul></div>`:""}
+    ${scoreBars(a)}</div>
+  ${photoStrip(a)}
+  ${findings?`<div class="panel"><h3>움직임에서 관찰된 것</h3><ul class="timeline">${findings}</ul></div>`:""}
+  <div class="panel"><h3>운동 우선순위</h3>
+    ${top.map((x,i)=>`<div class="prio"><div class="ptop"><span class="rank">${i+1}순위</span><h4>${DOMAINS[x.dom].ko}</h4>
+      <span class="badge ${x.confirmed?"":"gold"}">${x.confirmed?"움직임에서 확인됨":"확인 필요"}</span></div>
+      <p>${esc(DOMAINS[x.dom].early)}</p></div>`).join("")||`<p class="hint">없음</p>`}
+    ${a.ovmemo?`<p class="hint">강사 메모: ${esc(a.ovmemo)}</p>`:""}</div>
+  <div class="panel"><h3>${a.pkg}회 수업 방향</h3>${planTable(a)}${a.planMemo?`<p class="hint mt16">${esc(a.planMemo)}</p>`:""}</div>
+  ${guide.length?`<div class="panel"><h3>큐잉 가이드</h3><ul style="padding-left:18px">${guide.map(g=>`<li style="font-size:14px;margin:4px 0">${esc(g)}</li>`).join("")}</ul></div>`:""}
+  ${caut.length?`<div class="panel"><h3>주의</h3><ul style="padding-left:18px">${caut.map(c=>`<li style="font-size:14px;margin:4px 0">${esc(c)}</li>`).join("")}</ul></div>`:""}
+  ${prev?compareBlock(prev,a):""}`;
+}
+function compareBlock(p,a){
+  const sp=score(p),sa=score(a);
+  const rows=DORDER.filter(k=>sp[k].total||sa[k].total).map(k=>{const d=sa[k].total-sp[k].total;
+    return `<tr><td class="ph">${DOMAINS[k].ko}</td><td>${sp[k].total}</td><td>${sa[k].total}</td>
+      <td>${d===0?"변화 없음":(d<0?"소견 감소 "+d:"소견 증가 +"+d)}</td></tr>`;}).join("");
+  return `<div class="panel"><h3>이전 평가와 비교</h3><p class="sub">${esc(fmt(p.date))} → ${esc(fmt(a.date))}</p>
+    <table class="plan"><thead><tr><th>영역</th><th>이전</th><th>현재</th><th>변화</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+const VIEWS={
+  gate:gateView,
+  members:()=>isAdmin()?adminMembersView():membersView(),
+  addMember:addMemberView,
+  classes:classesView,
+  news:newsView,
+  settings:()=>isAdmin()?adminSettingsView():settingsView(),
+  member:memberView,intake:intakeView,assessments:assessmentsView,sessions:sessionsView,notes:notesView,
+  assess:assessView,report:reportView,
+  /* 어드민 전용 */
+  staff:adminStaffView,roles:adminRolesView,accounts:adminAccountsView,
+  rooms:adminRoomsView,center:adminCenterView};
+function dock(){
+  const d=dockEl();
+  if(S.screen!=="assess"){d.innerHTML="";return;}
+  const L=steps(),n=["statics","tests"].reduce((s,k)=>s+stepCount(k),0);
+  d.innerHTML=`<div class="dock"><span class="dockinfo">체크 <b>${n}</b>개 · ${S.step+1}/${L.length} ${L[S.step].t}</span>
+    <button class="btn" data-act="prevStep" ${S.step===0?"disabled":""}>이전</button>
+    ${S.step<L.length-1?`<button class="btn primary" data-act="nextStep">다음</button>`
+      :`<button class="btn primary" data-act="save">평가 저장</button>`}</div>`;
+}
+
+/* ============================================================
+   이벤트
+   ============================================================ */
+function toggleArr(arr,v){const i=arr.indexOf(v);if(i<0)arr.push(v);else arr.splice(i,1);}
+function saveDraft(silent){
+  const m=member();if(!m||!S.draft)return;
+  touch(S.draft);touch(m);
+  const i=m.assessments.findIndex(x=>x.id===S.draft.id);
+  if(i<0)m.assessments.push(S.draft);else m.assessments[i]=S.draft;
+  m.assessments.sort((a,b)=>a.date<b.date?-1:1);
+  persist().then(ok=>{if(!silent&&ok)toast("평가를 저장했습니다");});
+}
+function goStep(i){saveDraft(true);S.step=i;render();}
+function shrink(file,cb){
+  const r=new FileReader();
+  r.onload=()=>{const img=new Image();
+    img.onload=()=>{const max=1000;let w=img.width,h=img.height;const s=Math.min(1,max/Math.max(w,h));
+      w=Math.round(w*s);h=Math.round(h*s);
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);cb(c.toDataURL("image/jpeg",.7));};
+    img.onerror=()=>toast("이미지를 읽을 수 없습니다");img.src=r.result;};
+  r.readAsDataURL(file);
+}
+const v=id=>{const e=document.getElementById(id);return e?String(e.value).trim():"";};
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-pain],[data-painmain],[data-painside],[data-sec],[data-since],[data-delsurg],[data-chip],[data-act],[data-tab],[data-mode],[data-step],[data-go],[data-open],[data-opensessions],[data-edit],[data-report],[data-testdone],[data-testclear],[data-cue],[data-ov],[data-pkg],[data-delphoto],[data-sens],[data-gotostep]");
+  if(!t)return;
+  const a=S.draft,m=member();
+
+  if(t.dataset.chip!==undefined){
+    const k=t.dataset.chip,pre=k.split(":")[0],rest=k.slice(pre.length+1);
+    if(pre==="scope"){a.scope[rest]=!a.scope[rest];S.step=0;render();return;}
+    if(["goal","habit","special","redflag","diag","disc","neuro","exsym","joint","pelvic","fall","meds","medeff","urgent","watch"].includes(pre)){
+      const map={goal:"goals",habit:"habits",special:"special",redflag:"redflags",diag:"diagnoses",disc:"discomforts",
+        neuro:"neuro",exsym:"exsym",joint:"joint",pelvic:"pelvic",fall:"fall",meds:"medTags",medeff:"medEffects",
+        urgent:"urgent",watch:"watch"};
+      m.profile[map[pre]]=m.profile[map[pre]]||[];
+      toggleArr(m.profile[map[pre]],rest);touch(m);persist();
+      if(pre==="diag"||pre==="urgent"||pre==="watch"){render();return;}
+    }else if(k.includes("|")){
+      const [tid,item]=k.split("|");
+      a.tests[tid]=a.tests[tid]||{done:true,items:{},note:""};
+      a.tests[tid].done=true;a.tests[tid].items[item]=!a.tests[tid].items[item];
+    }else a.statics[k]=!a.statics[k];
+    t.setAttribute("aria-pressed",t.getAttribute("aria-pressed")==="true"?"false":"true");
+    if(k.includes("|")){
+      const tid=k.split("|")[0],box=t.closest("details");
+      if(box){const n=Object.values(a.tests[tid].items).filter(Boolean).length;
+        box.classList.toggle("flagged",n>0);
+        const st=box.querySelector(".tstate");if(st)st.innerHTML=`${n?"소견 "+n:"소견 없음"} <span class="badge">실시함</span>`;
+        const db=box.querySelector("[data-testdone]");if(db){db.classList.add("primary");db.textContent="실시함";}}}
+    if(S.screen==="assess"){dock();
+      const L=steps(),cur=document.querySelector(`.rail button[data-step="${S.step}"] .count`);
+      if(cur)cur.textContent=stepCount(L[S.step].k)||"";}
+    return;
+  }
+  if(t.dataset.mode){S.mode=t.dataset.mode;S.gate="login";render();return;}
+  if(t.dataset.act==="home"){if(!SESSION){render();return;}
+    if(S.screen==="assess")saveDraft(true);
+    go({screen:"members",q:"",filter:"all"},true);return;}
+  if(t.dataset.sec){S.intakeSec=t.dataset.sec;render();return;}
+  if(t.dataset.pain!==undefined&&m){
+    const P=m.profile;P.painSites=P.painSites||[];P.painDetail=P.painDetail||{};
+    const s=t.dataset.pain;
+    toggleArr(P.painSites,s);
+    if(P.painSites.includes(s))P.painDetail[s]=P.painDetail[s]||{};
+    touch(m);persist();render();return;}
+  if(t.dataset.painmain!==undefined&&m){
+    const P=m.profile,s=t.dataset.painmain;P.painDetail=P.painDetail||{};
+    P.painDetail[s]=P.painDetail[s]||{};
+    const on=!P.painDetail[s].main;
+    if(on)Object.keys(P.painDetail).forEach(k=>{if(P.painDetail[k])P.painDetail[k].main=0;});
+    P.painDetail[s].main=on?1:0;touch(m);persist();render();return;}
+  if(t.dataset.painside!==undefined&&m){
+    const P=m.profile,p=t.dataset.painside.split("|"),s=p[0],side=p[1];
+    P.painDetail=P.painDetail||{};P.painDetail[s]=P.painDetail[s]||{};
+    P.painDetail[s].side=P.painDetail[s].side===side?"":side;
+    touch(m);persist();render();return;}
+  if(t.dataset.since!==undefined){
+    S.since=S.since||[];toggleArr(S.since,t.dataset.since);
+    t.setAttribute("aria-pressed",t.getAttribute("aria-pressed")==="true"?"false":"true");return;}
+  if(t.dataset.delsurg!==undefined&&m){
+    m.profile.surgeries.splice(parseInt(t.dataset.delsurg,10),1);touch(m);persist();render();return;}
+  if(t.dataset.tab){go({screen:t.dataset.tab,q:"",filter:"all"},true);return;}
+  if(t.dataset.sens!==undefined){m.profile.sensitivity=m.profile.sensitivity===t.dataset.sens?"":t.dataset.sens;
+    touch(m);persist();S.editProfile=true;render();return;}
+  if(t.dataset.testdone){const id=t.dataset.testdone;a.tests[id]=a.tests[id]||{done:false,items:{},note:""};a.tests[id].done=!a.tests[id].done;render();return;}
+  if(t.dataset.testclear){const id=t.dataset.testclear;if(a.tests[id])a.tests[id].items={};render();return;}
+  if(t.dataset.cue){const [id,val]=t.dataset.cue.split("|");a.cues[id]=a.cues[id]===val?undefined:val;if(!a.cues[id])delete a.cues[id];render();return;}
+  if(t.dataset.ov){const [dom,val]=t.dataset.ov.split("|");a.overrides=a.overrides||{};a.overrides[dom]=a.overrides[dom]===val?"agree":val;render();return;}
+  if(t.dataset.pkg){a.pkg=parseInt(t.dataset.pkg,10);render();return;}
+  if(t.dataset.gotostep){const L=steps(),i=L.findIndex(x=>x.k===t.dataset.gotostep);if(i>=0)goStep(i);return;}
+  if(t.dataset.step!==undefined){goStep(parseInt(t.dataset.step,10));return;}
+  if(t.dataset.go){go({screen:t.dataset.go});return;}
+  if(t.dataset.open){go({screen:"member",memberId:t.dataset.open,editProfile:false});return;}
+  if(t.dataset.opensessions){go({screen:"sessions",memberId:t.dataset.opensessions});return;}
+  if(t.dataset.edit){S.draft=m.assessments.find(x=>x.id===t.dataset.edit);go({screen:"assess",step:0});return;}
+  if(t.dataset.report){go({screen:"report",viewAssessId:t.dataset.report});return;}
+  if(t.dataset.delphoto){const k=t.dataset.delphoto;
+    if(k.indexOf("extra:")===0)a.photos.extra.splice(parseInt(k.split(":")[1],10),1);else delete a.photos[k];
+    saveDraft(true);render();return;}
+
+  const act=t.dataset.act;
+  if(act==="back")goBack();
+  else if(act==="toSignup"){S.gate="signup";render();}
+  else if(act==="toLogin"){S.gate="login";render();}
+  else if(act==="signup"&&S.mode==="admin"){
+    /* 센터 + 대표관리자 만들기 */
+    const cn=v("c_name"),cen=v("c_en"),code=v("c_code").toLowerCase(),
+      name=v("a_name"),tel=digits(v("a_tel")),dob=v("a_dob"),mail=v("a_mail"),
+      id=v("a_id").toLowerCase(),pw=document.getElementById("a_pw").value,pw2=document.getElementById("a_pw2").value;
+    if(!cn){toast("센터 이름을 입력하세요");return;}
+    if(!name||!tel){toast("이름과 전화번호를 입력하세요");return;}
+    if(dob&&!validDate(dob)){toast("생년월일을 0000-00-00 형식으로 입력하세요");return;}
+    if(!/^[a-z0-9_]{3,}$/.test(id)){toast("아이디는 영문·숫자 3자 이상");return;}
+    if(live(DB.admins).some(a=>(a.userid||"").toLowerCase()===id)){toast("이미 사용 중인 아이디입니다");return;}
+    if(pw.length<4){toast("비밀번호는 4자 이상");return;}
+    if(pw!==pw2){toast("비밀번호가 서로 다릅니다");return;}
+    if(code&&live(DB.centers).some(c=>(c.code||"").toLowerCase()===code)){toast("이미 쓰고 있는 센터 코드입니다");return;}
+    const c=touch({id:uid(),name:cn,en:cen,code:code||cn,createdAt:today()});
+    DB.centers.push(c);seedRoles(c.id);
+    const a=touch({id:uid(),centerId:c.id,centers:[c.id],name,phone:tel,dob,email:mail,userid:id,pw,
+      role:"owner",roleId:"",active:true,createdAt:today()});
+    DB.admins.push(a);persist();
+    setSession(a,c.id,"admin").then(()=>{go({screen:"members"},true);toast(cn+" 센터를 만들었습니다");});}
+  else if(act==="signup"){
+    const name=v("s_name"),tel=digits(v("s_tel")),dob=v("s_dob"),mail=v("s_mail"),
+      id=v("s_id").toLowerCase(),pw=document.getElementById("s_pw").value,pw2=document.getElementById("s_pw2").value;
+    if(!name||!tel||!mail){toast("이름·전화번호·이메일을 입력하세요");return;}
+    if(!validDate(dob)){toast("생년월일을 0000-00-00 형식으로 입력하세요");return;}
+    if(!/^[a-z0-9_]{3,}$/.test(id)){toast("아이디는 영문·숫자 3자 이상");return;}
+    if(live(DB.staff).find(s=>s.userid===id)){toast("이미 사용 중인 아이디입니다");return;}
+    if(pw.length<4){toast("비밀번호는 4자 이상");return;}
+    if(pw!==pw2){toast("비밀번호가 서로 다릅니다");return;}
+    const s=live(DB.staff).find(x=>digits(x.phone)===tel);
+    if(!s){toast("센터에 등록되지 않은 번호입니다. 센터 관리자에게 등록을 요청하세요");return;}
+    if(s.userid){toast("이미 가입된 번호입니다. 로그인해 주세요");return;}
+    Object.assign(s,{name,phone:tel,dob,email:mail,userid:id,pw,active:true,joinedAt:today()});
+    touch(s);persist();
+    setSession(s,null,"coach").then(()=>{go({screen:"members"},true);toast(name+" 강사 계정을 만들었습니다");});}
+  else if(act==="login"){
+    const id=v("l_id").toLowerCase(),pw=document.getElementById("l_pw").value;
+    if(S.mode==="admin"){
+      if(!live(DB.admins).some(x=>x.userid)){toast("이 기기에 등록된 관리자 계정이 없습니다. 서버 연결이나 백업 가져오기를 먼저 하세요");return;}
+      const a=live(DB.admins).find(x=>(x.userid||"").toLowerCase()===id);
+      if(!a||a.pw!==pw){toast("아이디 또는 비밀번호가 맞지 않습니다");return;}
+      if(a.active===false){toast("비활성화된 계정입니다. 대표관리자에게 문의하세요");return;}
+      setSession(a,null,"admin").then(()=>{go({screen:"members"},true);toast(a.name+"님 · "+(a.role==="owner"?"대표관리자":roleLabel(a.roleId)));});
+      return;
+    }
+    if(!live(DB.staff).some(x=>x.userid)){toast("이 기기에 등록된 계정이 없습니다. 서버 연결이나 백업 가져오기를 먼저 하세요");return;}
+    const s=live(DB.staff).find(x=>(x.userid||"").toLowerCase()===id);
+    if(!s||s.pw!==pw){toast("아이디 또는 비밀번호가 맞지 않습니다");return;}
+    if(s.active===false){toast("비활성화된 계정입니다. 센터에 문의하세요");return;}
+    if(!(s.centers||[]).length){toast("소속 센터가 없습니다. 센터 관리자에게 문의하세요");return;}
+    setSession(s,null,"coach").then(()=>{go({screen:"members"},true);});}
+  else if(act==="logout"){
+    const back=APP_ROLE;
+    setSession(null).then(()=>{APP_ROLE="coach";S.mode=back;S.gate="login";S.memberId=null;
+      S.addAdmin=false;S.grantFor=null;Nav.stack=[];render();});}
+  else if(act==="saveMe"){
+    SESSION.name=v("me_name")||SESSION.name;SESSION.phone=digits(v("me_tel"));
+    SESSION.dob=v("me_dob");SESSION.email=v("me_mail");
+    const np=document.getElementById("me_pw").value;
+    if(np){if(np.length<4){toast("비밀번호는 4자 이상");return;}SESSION.pw=np;}
+    touch(SESSION);persist();render();toast("내 정보를 저장했습니다");}
+  else if(act==="joinCenter"){
+    const code=prompt("센터 코드를 입력하세요");if(!code)return;
+    const c=live(DB.centers).find(x=>(x.code||"").toLowerCase()===code.trim().toLowerCase());
+    if(!c){toast("코드에 해당하는 센터를 찾을 수 없습니다");return;}
+    if(!live(DB.staff).some(s=>s.id===SESSION.id&&(s.centers||[]).includes(c.id))){
+      toast(c.name+"의 강사 명단에 등록되어야 합니다. 그 센터 관리자에게 요청하세요");return;}
+    setCenter(c.id).then(render);}
+  else if(act==="sync"){Sync.on()?Sync.run(false).then(render):toast("서버 정보를 먼저 입력하세요");}
+  else if(act==="pullnow"){
+    if(!Sync.on()){toast("URL과 key를 먼저 입력하세요");return;}
+    Sync.pull().then(r=>{if(r){DB=mergeDB(DB,r);saveLocal();toast("서버에서 불러왔습니다 · 강사 "+live(DB.staff).length+"명");render();}
+      else toast("서버에 저장된 자료가 없습니다");}).catch(err=>toast("연결 실패: "+err.message));}
+  else if(act==="addMember"){
+    const nm=v("nm"),dob=v("ndob");
+    if(!nm){toast("이름을 입력하세요");return;}
+    if(dob&&!validDate(dob)){toast("생년월일을 0000-00-00 형식으로 입력하세요");return;}
+    const own=isAdmin()?v("nowner"):SESSION.id;
+    const mm=touch({id:uid(),centerId:CENTER_ID,ownerId:own,name:nm,sex:v("nsex"),dob:dob,phone:digits(v("ntel")),
+      profile:blankProfile(),notes:[],assessments:[],sessions:[],createdAt:today()});
+    DB.members.push(mm);persist();go({screen:"intake",memberId:mm.id,intakeSec:"basic"},true);}
+  else if(act==="newAssess"){S.draft=blankAssessment("초도 평가");go({screen:"assess",step:0});}
+  else if(act==="reassess"){
+    const last=live(m.assessments).slice(-1)[0];
+    const d=blankAssessment("5회 재평가");if(last)d.pkg=last.pkg;
+    d.scope={photos:true,statics:false,tests:true,cues:false};
+    S.draft=d;go({screen:"assess",step:0});}
+  else if(act==="clearOldPain"){
+    Object.assign(m.profile.pain,{quality:"",aggravate:"",relieve:"",onset:"",trend:"",nrsNow:"",nrsWorst:""});
+    touch(m);persist();render();}
+  else if(act==="addSurgery"){
+    m.profile.surgeries=m.profile.surgeries||[];
+    m.profile.surgeries.push({name:"",site:"",side:"",date:"",stage:"",limit:"",next:"",note:""});
+    touch(m);persist();render();}
+  else if(act==="addNote"){
+    const txt=v("ntext2");if(!txt){toast("내용을 입력하세요");return;}
+    m.notes.push(touch({id:uid(),date:validDate(v("ndate2"))?v("ndate2"):today(),text:txt,src:""}));
+    touch(m);persist();render();toast("특이사항을 기록했습니다");}
+  else if(act==="addSession"){
+    const no=parseInt(v("sno"),10)||live(m.sessions).length+1;
+    const s=touch({id:uid(),no,date:validDate(v("sdate"))?v("sdate"):today(),time:v("stime"),room:v("sroom"),
+      equip:v("sequip"),content:v("scontent"),response:v("sresp"),homework:v("shw"),next:v("snext"),
+      special:v("sspec"),recovery:v("srec"),since:(S.since||[]).slice()});
+    S.since=[];
+    m.sessions.push(s);
+    if(s.special)m.notes.push(touch({id:uid(),date:s.date,text:s.special,src:"수업 "+no+"회차"}));
+    touch(m);persist();render();toast("수업을 기록했습니다");}
+  else if(act==="addon"){
+    const val=document.getElementById("addon").value;if(!val)return;
+    a.addons=a.addons||[];if(!a.addons.includes(val))a.addons.push(val);
+    if(a.overrides&&a.overrides[val]==="exclude")delete a.overrides[val];render();}
+  else if(act==="prevStep")goStep(Math.max(0,S.step-1));
+  else if(act==="nextStep")goStep(Math.min(steps().length-1,S.step+1));
+  else if(act==="save"){saveDraft(false);S.viewAssessId=S.draft.id;}
+  else if(act==="reportNow"){saveDraft(true);go({screen:"report",viewAssessId:S.draft.id});}
+  else if(act==="print")window.print();
+  else if(act==="export"){
+    const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob),l=document.createElement("a");
+    l.href=url;l.download="movemap-"+today()+".json";l.click();URL.revokeObjectURL(url);}
+  else if(act==="import"){
+    const f=document.createElement("input");f.type="file";f.accept="application/json";
+    f.onchange=()=>{const r=new FileReader();
+      r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.members&&!d.staff)throw 0;
+        DB=mergeDB(DB,Object.assign(emptyDB(),d));persist({noSync:true});render();
+        toast("불러왔습니다 · 강사 "+live(DB.staff).length+"명");}catch(err){toast("파일을 읽을 수 없습니다");}};
+      r.readAsText(f.files[0]);};
+    f.click();}
+});
+
+document.addEventListener("input",e=>{
+  const el=e.target,a=S.draft,m=member();
+  if(el.dataset.mask==="date"){const p=maskDate(el.value);if(p!==el.value)el.value=p;
+    if(el.dataset.dobauto){const o=document.getElementById(el.dataset.dobauto);
+      if(o)o.textContent=validDate(p)&&ageOf(p)?ageOf(p)+"세":"";}
+    if(el.dataset.bind&&a)a[el.dataset.bind]=p;
+    return;}
+  if(el.dataset.mask==="tel"){const p=telFmt(el.value);if(p!==el.value)el.value=p;return;}
+  if(el.dataset.q!==undefined){S.q=el.value;const box=view().querySelector(".panel.flush");
+    if(box){const tmp=document.createElement("div");tmp.innerHTML=isAdmin()?adminMembersView():membersView();
+      const src2=tmp.querySelector(".panel.flush");if(src2)box.innerHTML=src2.innerHTML;}return;}
+  if(el.dataset.prof&&m){m.profile[el.dataset.prof]=el.value;touch(m);persist();}
+  else if(el.dataset.sync){DB.sync=DB.sync||{};DB.sync[el.dataset.sync]=el.value.trim();persist({noSync:true});syncBadge();}
+  else if(el.dataset.field&&a)a[el.dataset.field]=el.value;
+  else if(el.dataset.testnote&&a){const id=el.dataset.testnote;a.tests[id]=a.tests[id]||{done:true,items:{},note:""};a.tests[id].note=el.value;}
+  else if(el.dataset.cuememo&&a)a.cues._memo=el.value;
+  else if(el.dataset.pkgcustom&&a){const n=parseInt(el.value,10);
+    if(n>0&&n<=60){a.pkg=n;const w=document.querySelector("#view table.plan");
+      if(w){w.outerHTML=planTable(a);
+        document.querySelectorAll("[data-pkg]").forEach(b=>b.setAttribute("aria-pressed",parseInt(b.dataset.pkg,10)===a.pkg));}}}
+});
+document.addEventListener("change",e=>{
+  const el=e.target,a=S.draft,m=member();
+  if(el.dataset.centerpick){setCenter(el.value).then(()=>{S.memberId=null;go({screen:"members"},true);});return;}
+  if(el.dataset.photo!==undefined&&a){
+    const k=el.dataset.photo;let files=[...el.files];if(!files.length)return;
+    a.photos=a.photos||{extra:[]};a.photos.extra=a.photos.extra||[];
+    if(k==="extra")files=files.slice(0,MAX_EXTRA_PHOTOS-a.photos.extra.length);
+    if(!files.length){toast("추가 사진은 "+MAX_EXTRA_PHOTOS+"장까지입니다");return;}
+    let left=files.length;
+    files.forEach(f=>shrink(f,d=>{
+      if(k==="extra"){if(a.photos.extra.length<MAX_EXTRA_PHOTOS)a.photos.extra.push({data:d});}
+      else if(k.indexOf("extra:")===0){const i=parseInt(k.split(":")[1],10);if(a.photos.extra[i])a.photos.extra[i].data=d;}
+      else a.photos[k]=d;
+      if(--left===0){saveDraft(true);render();}}));
+    return;}
+  if(el.dataset.prof&&m){m.profile[el.dataset.prof]=el.value;touch(m);persist();return;}
+  if(el.dataset.field&&a){a[el.dataset.field]=el.value;render();}
+});
+
+
+/* ============================================================
+   어드민(센터·관리자) 모듈
+   ── 권한 그룹, 강사 관리, 룸 설정, 관리자 계정, 센터 설정
+   ============================================================ */
+const DEFAULT_ROLES=[
+  {name:"관리자",perms:{members_view:1,members_edit:1,classes:1,staff_view:1,staff_edit:1,rooms:1,settings:1}},
+  {name:"직원",perms:{members_view:1,members_edit:1,classes:1,staff_view:1}},
+  {name:"아르바이트",perms:{members_view:1,classes:1}}
+];
+function seedRoles(cid){
+  DB.roles=DB.roles||[];
+  DEFAULT_ROLES.forEach((r,i)=>DB.roles.push(touch({id:uid(),centerId:cid,name:r.name,perms:Object.assign({},r.perms),order:i})));
+}
+const adminsOf=cid=>live(DB.admins).filter(a=>a.centerId===(cid||CENTER_ID));
+const isOwner=()=>!!(SESSION&&SESSION.role==="owner");
+const roleLabel=id=>{const r=roleById(id);return r?r.name:"권한 그룹 없음";};
+const ownerName=id=>{const s=staffById(id);return s?s.name:"미배정";};
+function noPerm(t){return `<div class="panel"><h2>${esc(t)}</h2>
+  <p class="hint">이 화면을 볼 권한이 없습니다. 대표관리자가 권한 그룹에서 열어줄 수 있습니다.</p></div>`;}
+function adminHint(){return `<p class="hint mt16">삭제·권한 변경은 어드민에서만 할 수 있고, 강사 계정에서는 보이지 않습니다.</p>`;}
+
+/* ---------- 회원 (전체) ---------- */
+function adminMembersView(){
+  if(!can("members_view"))return noPerm("전체 회원");
+  const q=S.q.trim();
+  const all=members();
+  const list=all
+    .filter(m=>S.filter==="all"?true:(S.filter==="none"?!staffById(m.ownerId):m.ownerId===S.filter))
+    .filter(m=>!q||m.name.includes(q)||digits(m.phone).includes(digits(q)));
+  const opt=sel=>`<option value="">미배정</option>`+staffOf().map(s=>
+    `<option value="${s.id}" ${sel===s.id?"selected":""}>${esc(s.name)}</option>`).join("");
+  const rows=list.map(m=>{
+    const last=live(m.assessments).slice(-1)[0];
+    return `<tr>
+      <td><button class="rowbtn" data-open="${m.id}">${esc(m.name)}</button></td>
+      <td class="num">${esc(dobLine(m.dob)||"–")}</td>
+      <td class="num">${esc(telFmt(m.phone)||"–")}</td>
+      <td>${can("members_edit")?`<select data-owner="${m.id}">${opt(m.ownerId)}</select>`:esc(ownerName(m.ownerId))}</td>
+      <td class="num">${live(m.assessments).length}</td>
+      <td class="num">${live(m.sessions).length}</td>
+      <td class="num">${last?esc(fmt(last.date)):"–"}</td>
+      <td class="act">${can("del")?`<button class="btn sm danger" data-admdel="member|${m.id}">삭제</button>`:""}</td></tr>`;}).join("");
+  return `<div class="panel">
+    <div class="srow" style="justify-content:space-between;align-items:flex-end">
+      <div><h2>전체 회원 ${all.length}명</h2>
+        <p class="sub" style="margin-bottom:0">${esc(centerName())} · 담당 강사는 여기서 바로 바꿀 수 있습니다</p></div>
+      <div class="srow">
+        <select data-filter="1" style="width:auto">
+          <option value="all" ${S.filter==="all"?"selected":""}>전체</option>
+          <option value="none" ${S.filter==="none"?"selected":""}>미배정</option>
+          ${staffOf().map(s=>`<option value="${s.id}" ${S.filter===s.id?"selected":""}>${esc(s.name)} 담당</option>`).join("")}
+        </select>
+        <input type="text" id="q" data-q="1" value="${esc(S.q)}" placeholder="이름·전화 검색" style="width:180px"></div></div></div>
+  <div class="panel flush">${list.length?`<div class="tablewrap"><table class="grid">
+    <thead><tr><th>이름</th><th>생년월일</th><th>전화</th><th>담당 강사</th><th>평가</th><th>수업</th><th>최근 평가</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`
+    :`<div class="empty"><strong>${q||S.filter!=="all"?"조건에 맞는 회원이 없습니다":"등록된 회원이 없습니다"}</strong>강사가 회원을 등록하면 여기에 모두 나타납니다.</div>`}</div>`;
+}
+
+/* ---------- 강사 ---------- */
+function adminStaffView(){
+  if(!can("staff_view"))return noPerm("강사 관리");
+  const edit=can("staff_edit"),list=staffOf();
+  const rows=list.map(s=>{
+    const cnt=members().filter(m=>m.ownerId===s.id).length;
+    const acc=live(DB.admins).find(a=>a.staffId===s.id&&a.centerId===CENTER_ID);
+    return `<tr>
+      <td>${esc(s.name)}${acc?`<br><span class="badge">어드민 ${esc(roleLabel(acc.roleId))}</span>`:""}</td>
+      <td class="num">${esc(dobLine(s.dob)||"–")}</td>
+      <td class="num">${esc(telFmt(s.phone)||"–")}</td>
+      <td>${esc(s.email||"–")}</td>
+      <td>${s.userid?`<span class="badge">${esc(s.userid)}</span>`:`<span class="badge quiet">미가입</span>`}
+        ${s.active===false?`<span class="badge warn">비활성</span>`:""}</td>
+      <td class="num">${cnt}명</td>
+      <td>${edit?`<select data-move="${s.id}"><option value="">담당 회원 이동…</option>
+        ${list.filter(x=>x.id!==s.id).map(x=>`<option value="${x.id}">${esc(x.name)} 에게</option>`).join("")}
+        <option value="none">미배정으로</option></select>`:"–"}</td>
+      <td class="act">${edit?`<button class="btn sm" data-admact="toggleStaff|${s.id}">${s.active===false?"활성화":"비활성화"}</button>
+        ${acc?"":`<button class="btn sm" data-admact="grantAdmin|${s.id}">어드민 권한</button>`}`:""}
+        ${can("del")?`<button class="btn sm danger" data-admdel="staff|${s.id}">삭제</button>`:""}</td></tr>`;}).join("");
+  return `<div class="panel"><h2>강사 관리</h2>
+    <p class="sub">이름과 전화번호를 먼저 등록해 두면, 그 번호로만 강사용 로그인에서 회원가입할 수 있습니다</p>
+    ${edit?`<div class="fields">
+      <div><label class="f" for="st_name">이름</label><input id="st_name" type="text" placeholder="강사 이름"></div>
+      <div><label class="f" for="st_tel">전화번호</label><input id="st_tel" type="tel" inputmode="numeric" data-mask="tel" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="mt16"><button class="btn primary" data-admact="addStaff">명단에 추가</button></div>`:""}
+    <p class="hint mt16">이미 다른 센터에서 쓰고 있는 강사라면, 같은 번호를 등록하면 그 강사 앱에 이 센터가 함께 나타납니다.</p></div>
+  ${S.grantFor?grantAdminBox(S.grantFor):""}
+  <div class="panel flush">${list.length?`<div class="tablewrap"><table class="grid">
+    <thead><tr><th>이름</th><th>생년월일</th><th>전화</th><th>이메일</th><th>계정</th><th>담당</th><th>담당 이동</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`:`<div class="empty"><strong>등록된 강사가 없습니다</strong>위에서 이름과 전화번호를 추가하세요.</div>`}</div>`;
+}
+function grantAdminBox(sid){
+  const s=staffById(sid);if(!s)return "";
+  const rs=rolesOf();
+  return `<div class="panel"><h3>${esc(s.name)} 강사에게 어드민 접근 권한 주기</h3>
+    <p class="sub">같은 사람이 강사용·어드민 두 가지로 로그인할 수 있게 됩니다. 어드민 로그인은 아래 아이디를 씁니다</p>
+    <div class="fields">
+      <div><label class="f" for="ga_id">어드민 아이디</label><input id="ga_id" type="text" autocapitalize="off" placeholder="영문·숫자 3자 이상"></div>
+      <div><label class="f" for="ga_pw">비밀번호</label><input id="ga_pw" type="password" placeholder="4자 이상"></div>
+      <div><label class="f" for="ga_role">권한 그룹</label><select id="ga_role">
+        ${rs.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join("")}</select></div></div>
+    <div class="mt16 srow"><button class="btn primary" data-admact="saveGrant|${sid}">권한 주기</button>
+      <button class="btn ghost" data-admact="cancelGrant">취소</button></div></div>`;
+}
+
+/* ---------- 권한 그룹 ---------- */
+function adminRolesView(){
+  if(!can("roles"))return noPerm("권한 그룹");
+  const rs=rolesOf();
+  const used=id=>adminsOf().filter(a=>a.roleId===id).length;
+  return `<div class="panel"><h2>권한 그룹</h2>
+    <p class="sub">그룹을 만들고 할 수 있는 일을 체크해 두면, 계정마다 그룹만 골라서 권한을 줄 수 있습니다</p>
+    <div class="srow"><input type="text" id="newrole" placeholder="예: 매니저, 데스크, 아르바이트" style="max-width:260px">
+      <button class="btn primary" data-admact="addRole">그룹 추가</button></div></div>
+  ${rs.map(r=>`<div class="panel"><div class="srow" style="justify-content:space-between;align-items:center">
+      <div class="srow"><input type="text" data-rolename="${r.id}" value="${esc(r.name)}" style="max-width:220px;font-weight:650">
+        <span class="badge quiet">${used(r.id)}명 사용 중</span></div>
+      <button class="btn sm danger" data-admdel="role|${r.id}">그룹 삭제</button></div>
+    <div class="perm mt16">${PERM_LIST.map(([k,t])=>
+      `<button class="chip" data-rp="${r.id}|${k}" aria-pressed="${!!(r.perms&&r.perms[k])}">${t}</button>`).join("")}</div></div>`).join("")
+    ||`<div class="panel"><div class="mutedbox">아직 권한 그룹이 없습니다.</div></div>`}
+  <div class="panel"><p class="hint" style="margin:0">대표관리자는 모든 권한을 가지며, 다른 관리자는 대표관리자의 개인정보를 볼 수 없습니다.</p></div>`;
+}
+
+/* ---------- 관리자·직원 계정 ---------- */
+function adminAccountsView(){
+  if(!can("admins"))return noPerm("관리자 계정");
+  const rs=rolesOf(),list=adminsOf();
+  const rows=list.map(a=>{
+    const hide=a.role==="owner"&&!isOwner();
+    return `<tr>
+      <td>${esc(a.name)}${a.role==="owner"?` <span class="badge">대표관리자</span>`:""}</td>
+      <td class="num">${hide?"비공개":esc(dobLine(a.dob)||"–")}</td>
+      <td class="num">${hide?"비공개":esc(telFmt(a.phone)||"–")}</td>
+      <td>${hide?"비공개":esc(a.userid||"–")}</td>
+      <td>${a.role==="owner"?`<span class="badge">모든 권한</span>`
+        :(isOwner()?`<select data-adminrole="${a.id}"><option value="">그룹 없음</option>
+          ${rs.map(r=>`<option value="${r.id}" ${a.roleId===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`
+        :esc(roleLabel(a.roleId)))}</td>
+      <td class="act">${isOwner()&&a.id!==SESSION.id&&a.role!=="owner"
+        ?`<button class="btn sm" data-admact="toggleAdmin|${a.id}">${a.active===false?"활성화":"비활성화"}</button>
+          <button class="btn sm danger" data-admdel="admin|${a.id}">삭제</button>`:""}</td></tr>`;}).join("");
+  return `<div class="panel"><h2>관리자 · 직원 계정</h2>
+    <p class="sub">어드민으로 로그인할 수 있는 계정입니다. 계정마다 권한 그룹을 정해 주세요</p>
+    <div class="tablewrap"><table class="grid">
+      <thead><tr><th>이름</th><th>생년월일</th><th>전화</th><th>아이디</th><th>권한 그룹</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    ${isOwner()?`<div class="mt16"><button class="btn" data-admact="toAddAdmin">계정 추가</button></div>`
+      :`<p class="hint mt16">계정 추가와 권한 변경은 대표관리자만 할 수 있습니다.</p>`}</div>
+  ${isOwner()&&S.addAdmin?adminAddForm():""}`;
+}
+function adminAddForm(){
+  const rs=rolesOf();
+  return `<div class="panel"><h3>계정 추가</h3>
+    <div class="fields">
+      <div><label class="f" for="na_name">이름</label><input id="na_name" type="text"></div>
+      <div><label class="f" for="na_tel">전화번호</label><input id="na_tel" type="tel" inputmode="numeric" data-mask="tel" placeholder="010-0000-0000"></div>
+      ${dateField("na_dob","","생년월일",{age:1})}
+      <div><label class="f" for="na_mail">이메일</label><input id="na_mail" type="email" placeholder="name@example.com"></div>
+      <div><label class="f" for="na_id">아이디</label><input id="na_id" type="text" autocapitalize="off" placeholder="영문·숫자 3자 이상"></div>
+      <div><label class="f" for="na_pw">비밀번호</label><input id="na_pw" type="password" placeholder="4자 이상"></div>
+      <div><label class="f" for="na_role">권한 그룹</label><select id="na_role">
+        ${rs.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join("")}</select></div></div>
+    <div class="mt16 srow"><button class="btn primary" data-admact="addAdmin">추가</button>
+      <button class="btn ghost" data-admact="cancelAdmin">취소</button></div>
+    <p class="hint mt16">추가한 사람에게 아이디와 비밀번호를 알려주면, 어드민으로 로그인할 수 있습니다.</p></div>`;
+}
+
+/* ---------- 룸 ---------- */
+function adminRoomsView(){
+  if(!can("rooms"))return noPerm("룸 설정");
+  const rs=rooms();
+  return `<div class="panel"><h2>룸 설정</h2>
+    <p class="sub">여기에 등록한 룸이 강사용 수업 기록에서 선택지로 나타납니다</p>
+    <div class="srow"><input type="text" id="rm" placeholder="예: 룸A(콤비리포머)" style="max-width:280px">
+      <button class="btn primary" data-admact="addRoom">룸 추가</button></div>
+    ${rs.length?`<div class="mt24 tablewrap"><table class="grid"><thead><tr><th>룸 이름</th><th></th></tr></thead><tbody>
+      ${rs.map(r=>`<tr><td><input type="text" data-room="${r.id}" value="${esc(r.name)}"></td>
+        <td class="act"><button class="btn sm danger" data-admdel="room|${r.id}">삭제</button></td></tr>`).join("")}
+      </tbody></table></div>`:`<div class="mutedbox mt24">등록된 룸이 없습니다.</div>`}</div>`;
+}
+
+/* ---------- 센터 정보 ---------- */
+function adminCenterView(){
+  if(!can("settings"))return noPerm("센터 정보");
+  const c=curCenter()||{},mine=(SESSION.centers||[SESSION.centerId]).filter(Boolean);
+  return `<div class="panel"><h2>센터 정보</h2>
+    <p class="sub">여기에 적은 이름이 앱 상단과 리포트에 표시됩니다</p>
+    <div class="fields">
+      <div><label class="f" for="cn">센터 이름</label><input id="cn" type="text" data-center="name" value="${esc(c.name||"")}"></div>
+      <div><label class="f" for="ce">영문 표기</label><input id="ce" type="text" data-center="en" value="${esc(c.en||"")}"></div>
+      <div><label class="f" for="cc">센터 코드</label><input id="cc" type="text" data-center="code" value="${esc(c.code||"")}"></div>
+    </div>
+    <p class="hint mt16">센터 코드는 강사가 소속 센터를 추가할 때 씁니다.</p></div>
+  <div class="panel"><h3>내가 관리하는 센터</h3>
+    <ul class="setlist">${mine.map(id=>{const x=centerById(id);return x?`<li><span>${esc(x.name)}${x.en?` <span class="hint">${esc(x.en)}</span>`:""}</span>
+      <span class="sv">${id===CENTER_ID?`<span class="badge">보는 중</span>`:`<button class="btn sm" data-admact="switchCenter|${id}">이 센터 보기</button>`}</span></li>`:"";}).join("")}</ul>
+    ${isOwner()?`<div class="mt16"><button class="btn sm" data-admact="addCenter">센터(지점) 추가</button></div>`:""}</div>`;
+}
+
+/* ---------- 어드민 설정 ---------- */
+function adminSettingsView(){
+  const c=DB.sync||{};
+  const link=(k,t,s)=>`<li><span>${t}<em class="sethint">${s}</em></span><span class="sv"><button class="btn sm" data-go="${k}">열기</button></span></li>`;
+  return `<div class="panel"><h2>설정</h2>
+    <ul class="setlist">
+      <li><span>현재 센터</span><span class="sv">${esc(centerName())}</span></li>
+      <li><span>내 계정</span><span class="sv">${esc(SESSION.name)} · ${isOwner()?"대표관리자":esc(roleLabel(SESSION.roleId))}</span></li>
+      ${can("settings")?link("center","센터 정보","이름·영문 표기·센터 코드"):""}
+      ${can("rooms")?link("rooms","룸 설정","수업 기록에 뜨는 룸 목록"):""}
+      ${can("roles")?link("roles","권한 그룹","그룹 이름과 할 수 있는 일"):""}
+      ${can("admins")?link("accounts","관리자 · 직원 계정","계정별 권한 그룹 지정"):""}
+    </ul></div>
+  <div class="panel"><h3>내 정보</h3>
+    <div class="fields">
+      <div><label class="f" for="me_name">이름</label><input id="me_name" type="text" value="${esc(SESSION.name||"")}"></div>
+      <div><label class="f" for="me_tel">전화번호</label><input id="me_tel" type="tel" inputmode="numeric" data-mask="tel" value="${esc(telFmt(SESSION.phone))}"></div>
+      ${dateField("me_dob",SESSION.dob,"생년월일",{age:1})}
+      <div><label class="f" for="me_mail">이메일</label><input id="me_mail" type="email" value="${esc(SESSION.email||"")}"></div>
+      <div><label class="f" for="me_id">아이디</label><input id="me_id" type="text" class="readonly" value="${esc(SESSION.userid||"")}" readonly></div>
+      <div><label class="f" for="me_pw">새 비밀번호</label><input id="me_pw" type="password" placeholder="변경할 때만 입력"></div>
+    </div>
+    <div class="mt16"><button class="btn primary" data-act="saveMe">내 정보 저장</button></div></div>
+  <div class="panel"><h3>서버 연결</h3>
+    <p class="sub">같은 정보를 강사들 기기에도 넣으면, 기기가 바뀌어도 같은 자료를 함께 씁니다</p>
+    <div class="fields">
+      <div class="wide"><label class="f" for="sy_url">프로젝트 URL</label><input id="sy_url" type="text" data-sync="url" value="${esc(c.url||"")}" placeholder="https://xxxx.supabase.co"></div>
+      <div class="wide"><label class="f" for="sy_key">anon key</label><input id="sy_key" type="text" data-sync="key" value="${esc(c.key||"")}"></div>
+      <div><label class="f" for="sy_s">저장 공간 이름</label><input id="sy_s" type="text" data-sync="space" value="${esc(c.space||"movemap")}"></div>
+    </div>
+    <div class="mt16 srow"><button class="btn" data-act="sync">지금 동기화</button>
+      <button class="btn" data-act="export">백업 내보내기</button><button class="btn" data-act="import">가져오기</button></div>
+    <p class="hint mt16">${Sync.on()?(Sync.state.error?"오류: "+esc(Sync.state.error):(Sync.state.last?"마지막 동기화 "+Sync.state.last:"연결 준비됨")):"연결 안 됨 · 이 기기에만 저장됩니다"}</p></div>
+  <div class="panel"><button class="btn danger" data-act="logout">로그아웃</button></div>`;
+}
+
+/* ============================================================
+   어드민 이벤트
+   ============================================================ */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-admact],[data-admdel],[data-rp]");
+  if(!t)return;
+  e.preventDefault();
+
+  /* 권한 그룹 체크 */
+  if(t.dataset.rp){
+    if(!can("roles"))return;
+    const [rid,k]=t.dataset.rp.split("|"),r=roleById(rid);if(!r)return;
+    r.perms=r.perms||{};r.perms[k]=r.perms[k]?0:1;touch(r);persist();
+    t.setAttribute("aria-pressed",r.perms[k]?"true":"false");return;
+  }
+
+  /* 삭제 */
+  if(t.dataset.admdel){
+    if(!can("del")&&t.dataset.admdel.split("|")[0]!=="role"){toast("삭제 권한이 없습니다");return;}
+    const [kind,id]=t.dataset.admdel.split("|");
+    const m=member();
+    const kill=o=>{if(o){o.deleted=true;touch(o);}};
+    if(kind==="member"){const x=memberById(id);if(!x)return;
+      if(!confirm(x.name+" 회원을 삭제할까요? 평가·수업 기록이 함께 사라집니다."))return;
+      kill(x);persist();toast("회원을 삭제했습니다");
+      if(S.screen==="member"){go({screen:"members",memberId:null},true);return;}}
+    else if(kind==="staff"){const x=staffById(id);if(!x)return;
+      if(members().some(y=>y.ownerId===id)){toast("담당 회원을 먼저 다른 강사에게 옮겨 주세요");return;}
+      if(!confirm(x.name+" 강사를 명단에서 삭제할까요?"))return;kill(x);persist();toast("삭제했습니다");}
+    else if(kind==="admin"){if(!isOwner()){toast("대표관리자만 할 수 있습니다");return;}
+      const x=(DB.admins||[]).find(a=>a.id===id);if(!x||x.role==="owner")return;
+      if(!confirm(x.name+" 계정을 삭제할까요?"))return;kill(x);persist();toast("삭제했습니다");}
+    else if(kind==="role"){if(!can("roles")){toast("권한이 없습니다");return;}
+      const x=roleById(id);if(!x)return;
+      if(adminsOf().some(a=>a.roleId===id)){toast("이 그룹을 쓰는 계정이 있습니다. 먼저 다른 그룹으로 바꿔 주세요");return;}
+      kill(x);persist();toast("그룹을 삭제했습니다");}
+    else if(kind==="room"){const x=(DB.rooms||[]).find(r=>r.id===id);kill(x);persist();}
+    else if(kind==="assess"&&m){kill(live(m.assessments).find(x=>x.id===id));touch(m);persist();toast("평가를 삭제했습니다");}
+    else if(kind==="session"&&m){kill(live(m.sessions).find(x=>x.id===id));touch(m);persist();toast("수업 기록을 삭제했습니다");}
+    else if(kind==="note"&&m){kill(live(m.notes).find(x=>x.id===id));touch(m);persist();toast("특이사항을 삭제했습니다");}
+    render();return;
+  }
+
+  const [act,arg]=t.dataset.admact.split("|");
+
+  if(act==="addStaff"){
+    if(!can("staff_edit")){toast("권한이 없습니다");return;}
+    const name=v("st_name"),tel=digits(v("st_tel"));
+    if(!name||!tel){toast("이름과 전화번호를 입력하세요");return;}
+    const ex=live(DB.staff).find(s=>digits(s.phone)===tel);
+    if(ex){ex.centers=ex.centers||[];
+      if(ex.centers.includes(CENTER_ID)){toast("이미 이 센터에 등록된 번호입니다");return;}
+      ex.centers.push(CENTER_ID);touch(ex);persist();render();toast(ex.name+" 강사를 이 센터에 추가했습니다");return;}
+    DB.staff.push(touch({id:uid(),name,phone:tel,dob:"",email:"",userid:"",pw:"",centers:[CENTER_ID],active:true,createdAt:today()}));
+    persist();render();toast(name+" 강사를 명단에 추가했습니다");}
+  else if(act==="toggleStaff"){const s=staffById(arg);if(!s)return;
+    s.active=s.active===false;touch(s);persist();render();}
+  else if(act==="grantAdmin"){S.grantFor=arg;render();}
+  else if(act==="cancelGrant"){S.grantFor=null;render();}
+  else if(act==="saveGrant"){
+    const s=staffById(arg);if(!s)return;
+    const id=v("ga_id").toLowerCase(),pw=document.getElementById("ga_pw").value,rid=v("ga_role");
+    if(!/^[a-z0-9_]{3,}$/.test(id)){toast("아이디는 영문·숫자 3자 이상");return;}
+    if(live(DB.admins).some(a=>(a.userid||"").toLowerCase()===id)){toast("이미 쓰고 있는 아이디입니다");return;}
+    if(pw.length<4){toast("비밀번호는 4자 이상");return;}
+    DB.admins.push(touch({id:uid(),centerId:CENTER_ID,centers:[CENTER_ID],staffId:s.id,name:s.name,phone:s.phone,
+      dob:s.dob||"",email:s.email||"",userid:id,pw,role:"manager",roleId:rid,active:true,createdAt:today()}));
+    S.grantFor=null;persist();render();toast(s.name+" 강사에게 어드민 권한을 주었습니다");}
+  else if(act==="toAddAdmin"){S.addAdmin=true;render();}
+  else if(act==="cancelAdmin"){S.addAdmin=false;render();}
+  else if(act==="addAdmin"){
+    if(!isOwner()){toast("대표관리자만 할 수 있습니다");return;}
+    const name=v("na_name"),tel=digits(v("na_tel")),dob=v("na_dob"),mail=v("na_mail"),
+      id=v("na_id").toLowerCase(),pw=document.getElementById("na_pw").value,rid=v("na_role");
+    if(!name||!tel){toast("이름과 전화번호를 입력하세요");return;}
+    if(dob&&!validDate(dob)){toast("생년월일을 0000-00-00 형식으로 입력하세요");return;}
+    if(!/^[a-z0-9_]{3,}$/.test(id)){toast("아이디는 영문·숫자 3자 이상");return;}
+    if(live(DB.admins).some(a=>(a.userid||"").toLowerCase()===id)){toast("이미 쓰고 있는 아이디입니다");return;}
+    if(pw.length<4){toast("비밀번호는 4자 이상");return;}
+    DB.admins.push(touch({id:uid(),centerId:CENTER_ID,centers:[CENTER_ID],name,phone:tel,dob,email:mail,
+      userid:id,pw,role:"manager",roleId:rid,active:true,createdAt:today()}));
+    S.addAdmin=false;persist();render();toast(name+" 계정을 추가했습니다");}
+  else if(act==="toggleAdmin"){if(!isOwner())return;
+    const a=(DB.admins||[]).find(x=>x.id===arg);if(!a||a.role==="owner")return;
+    a.active=a.active===false;touch(a);persist();render();}
+  else if(act==="addRole"){
+    if(!can("roles")){toast("권한이 없습니다");return;}
+    const nm=v("newrole");if(!nm){toast("그룹 이름을 입력하세요");return;}
+    DB.roles=DB.roles||[];
+    DB.roles.push(touch({id:uid(),centerId:CENTER_ID,name:nm,perms:{members_view:1,classes:1},order:rolesOf().length}));
+    persist();render();toast(nm+" 그룹을 만들었습니다");}
+  else if(act==="addRoom"){
+    if(!can("rooms")){toast("권한이 없습니다");return;}
+    const nm=v("rm");if(!nm){toast("룸 이름을 입력하세요");return;}
+    DB.rooms.push(touch({id:uid(),centerId:CENTER_ID,name:nm,order:rooms().length}));
+    persist();render();toast("룸을 추가했습니다");}
+  else if(act==="switchCenter"){setCenter(arg).then(()=>go({screen:"members",memberId:null},true));}
+  else if(act==="addCenter"){
+    if(!isOwner()){toast("대표관리자만 할 수 있습니다");return;}
+    const nm=prompt("새 센터(지점) 이름");if(!nm)return;
+    const c=touch({id:uid(),name:nm.trim(),en:"",code:"",createdAt:today()});
+    DB.centers.push(c);seedRoles(c.id);
+    SESSION.centers=(SESSION.centers||[SESSION.centerId]).filter(Boolean);SESSION.centers.push(c.id);
+    touch(SESSION);persist();setCenter(c.id).then(()=>go({screen:"settings"},true));
+    toast(nm+" 센터를 만들었습니다");}
+});
+
+/* 셀렉트·입력 */
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.dataset.owner!==undefined){
+    if(!can("members_edit")){toast("권한이 없습니다");render();return;}
+    const m=memberById(el.dataset.owner);if(!m)return;
+    m.ownerId=el.value||"";touch(m);persist();toast("담당 강사를 바꿨습니다");return;}
+  if(el.dataset.move!==undefined){
+    if(!can("staff_edit"))return;
+    const from=el.dataset.move,to=el.value;if(!to)return;
+    const list=members().filter(m=>m.ownerId===from);
+    if(!list.length){toast("옮길 회원이 없습니다");el.value="";return;}
+    if(!confirm(list.length+"명을 옮길까요?")){el.value="";return;}
+    list.forEach(m=>{m.ownerId=to==="none"?"":to;touch(m);});
+    persist();render();toast(list.length+"명을 옮겼습니다");return;}
+  if(el.dataset.adminrole!==undefined){
+    if(!isOwner())return;
+    const a=(DB.admins||[]).find(x=>x.id===el.dataset.adminrole);if(!a)return;
+    a.roleId=el.value;touch(a);persist();toast("권한 그룹을 바꿨습니다");return;}
+  if(el.dataset.filter!==undefined){S.filter=el.value;render();return;}
+});
+document.addEventListener("input",e=>{
+  const el=e.target;
+  if(el.dataset.room!==undefined){const r=(DB.rooms||[]).find(x=>x.id===el.dataset.room);
+    if(r){r.name=el.value;touch(r);persist();}return;}
+  if(el.dataset.rolename!==undefined){const r=roleById(el.dataset.rolename);
+    if(r){r.name=el.value;touch(r);persist();}return;}
+  if(el.dataset.center!==undefined){const c=curCenter();
+    if(c&&can("settings")){c[el.dataset.center]=el.value;touch(c);persist();
+      const cn=document.getElementById("cname");if(cn)cn.innerHTML=esc(centerName())+(isAdmin()?' <span>어드민</span>':"");}return;}
+});
+
+/* ---------- 문진 입력 저장 ---------- */
+function saveIntake(el){
+  const m=member();if(!m)return false;
+  const P=m.profile;let hit=false;
+  if(el.dataset.pobj!==undefined){
+    const [o,f]=el.dataset.pobj.split("|");
+    if(o==="__prof")P[f]=el.value; else {P[o]=P[o]||{};P[o][f]=el.value;}
+    hit=true;
+  }else if(el.dataset.cond!==undefined){
+    const [n,f]=el.dataset.cond.split("|");
+    P.conditions=P.conditions||{};P.conditions[n]=P.conditions[n]||{};
+    P.conditions[n][f]=el.value;hit=true;
+  }else if(el.dataset.pdet!==undefined){
+    const p=el.dataset.pdet.split("|");
+    P.painDetail=P.painDetail||{};P.painDetail[p[0]]=P.painDetail[p[0]]||{};
+    P.painDetail[p[0]][p[1]]=el.value;hit=true;
+  }else if(el.dataset.surg!==undefined){
+    const [i,f]=el.dataset.surg.split("|");
+    P.surgeries=P.surgeries||[];
+    if(P.surgeries[i]){P.surgeries[i][f]=el.value;hit=true;}
+  }
+  if(hit){touch(m);persist();}
+  return hit;
+}
+document.addEventListener("input",e=>{saveIntake(e.target);});
+document.addEventListener("change",e=>{saveIntake(e.target);});
+
+(async function init(){await bootData();Nav.init();
+  S.mode=APP_ROLE;S.screen=SESSION?"members":"gate";render();})();
+
+</script>
+</body>
+</html>
