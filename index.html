@@ -477,6 +477,18 @@ table.grid input[type=text]{height:32px;font-size:13px}
 <div id="dock"></div>
 <div id="tabs"></div>
 <script>
+/* ============================================================
+   ▼▼▼ 서버 연결 — 여기 두 줄만 붙여넣으면 모든 기기에서 같은 자료를 씁니다 ▼▼▼
+   Supabase → Project Settings → API 에서 복사합니다.
+   비워두면 이 기기 브라우저에만 저장됩니다.
+   ============================================================ */
+const SERVER={
+  url  : "",                 /* ← Project URL  예: https://abcdefgh.supabase.co */
+  key  : "",                 /* ← anon public 키 (eyJ... 로 시작하는 긴 글자) */
+  space: "movemap-center-1"  /* ← 저장 공간 이름. 모든 기기에서 똑같아야 합니다 */
+};
+/* ▲▲▲ 여기까지 ▲▲▲ */
+
 let APP_ROLE="coach";                    /* 로그인할 때 admin / coach 중에서 정해짐 */
 const isAdmin=()=>APP_ROLE==="admin";
 
@@ -1075,6 +1087,11 @@ async function bootData(){
     }
     delete a.perms;
   });
+  /* 파일에 적어둔 서버 정보가 있으면 그것을 씁니다 */
+  if(SERVER.url&&SERVER.key){
+    DB.sync=Object.assign(DB.sync||{},{url:SERVER.url.trim(),key:SERVER.key.trim(),
+      space:(SERVER.space||"").trim()||(DB.sync||{}).space||"movemap"});
+  }
   if(Sync.on()){try{const r=await Sync.pull();if(r){DB=mergeDB(DB,r);await saveLocal();}}catch(e){}}
   const rawS=await Store.get(SESSKEY);
   if(rawS){
@@ -2738,7 +2755,7 @@ function adminSettingsView(){
     </div>
     <div class="mt16"><button class="btn primary" data-act="saveMe">내 정보 저장</button></div></div>
   <div class="panel"><h3>서버 연결</h3>
-    <p class="sub">같은 정보를 강사들 기기에도 넣으면, 기기가 바뀌어도 같은 자료를 함께 씁니다</p>
+    <p class="sub">${SERVER.url&&SERVER.key?"파일에 적어둔 서버 정보를 쓰고 있습니다":"같은 정보를 강사들 기기에도 넣으면, 기기가 바뀌어도 같은 자료를 함께 씁니다"}</p>
     <div class="fields">
       <div class="wide"><label class="f" for="sy_url">프로젝트 URL</label><input id="sy_url" type="text" data-sync="url" value="${esc(c.url||"")}" placeholder="https://xxxx.supabase.co"></div>
       <div class="wide"><label class="f" for="sy_key">anon key</label><input id="sy_key" type="text" data-sync="key" value="${esc(c.key||"")}"></div>
